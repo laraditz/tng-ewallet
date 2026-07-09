@@ -6,6 +6,7 @@ use Laraditz\TngEwallet\Client\Contracts\ClientInterface;
 use Laraditz\TngEwallet\Enums\PaymentStatus;
 use Laraditz\TngEwallet\Enums\ResultStatus;
 use Laraditz\TngEwallet\Models\Payment;
+use Laraditz\TngEwallet\Responses\InquiryPaymentResponse;
 use Laraditz\TngEwallet\Responses\PayResponse;
 
 class PaymentService
@@ -32,6 +33,11 @@ class PaymentService
         ]);
 
         return $response;
+    }
+
+    public function inquiry(array $data): InquiryPaymentResponse
+    {
+        return new InquiryPaymentResponse($this->client->post('/v1/payments/inquiryPayment', $data));
     }
 
     protected function mapResultStatusToPaymentStatus(?string $resultStatus): PaymentStatus
