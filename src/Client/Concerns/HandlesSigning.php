@@ -22,4 +22,18 @@ trait HandlesSigning
     {
         return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
     }
+
+    protected function buildSigningHeaders(string $clientId, string $requestTime, int $keyVersion, string $signature): array
+    {
+        return [
+            'Client-Id' => $clientId,
+            'Request-Time' => $requestTime,
+            'Signature' => "algorithm=RSA256, keyVersion={$keyVersion}, signature={$signature}",
+        ];
+    }
+
+    protected function generateRequestTime(): string
+    {
+        return now()->format('Y-m-d\TH:i:s.vP');
+    }
 }
