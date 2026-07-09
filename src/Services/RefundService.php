@@ -36,6 +36,20 @@ class RefundService
 
     public function inquiry(array $data): InquiryRefundResponse
     {
-        return new InquiryRefundResponse($this->client->post('/v1/payments/inquiryRefund', $data));
+        $response = new InquiryRefundResponse($this->client->post('/v1/payments/inquiryRefund', $data));
+
+        $refundRequestId = $data['refundRequestId'] ?? $response->refundRequestId;
+        $refund = $refundRequestId !== null ? Refund::where('refund_request_id', $refundRequestId)->first() : null;
+
+        $refund?->update([
+            'refund_id' => $response->refundId ?? $refund->refund_id,
+            'refund_status' => $response->refundStatus,
+            'result_status' => $response->resultStatus,
+            'result_code' => $response->resultCode,
+            'refund_time' => $response->refundTime,
+            'refund_fail_reason' => $response->refundFailReason,
+        ]);
+
+        return $response;
     }
 }
