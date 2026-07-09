@@ -20,5 +20,9 @@ class TngEwalletServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+
+        $this->publishes([
+            __DIR__.'/../config/tng-ewallet.php' => config_path('tng-ewallet.php'),
+        ], 'tng-ewallet-config');
     }
 }
