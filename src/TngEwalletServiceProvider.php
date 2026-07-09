@@ -12,6 +12,8 @@ class TngEwalletServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/tng-ewallet.php', 'tng-ewallet');
 
         $this->app->singleton(TngClient::class);
+
+        $this->app->singleton('tng-ewallet', fn ($app) => new TngEwallet($app->make(TngClient::class)));
     }
 
     public function boot(): void
