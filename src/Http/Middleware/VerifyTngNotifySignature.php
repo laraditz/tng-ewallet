@@ -31,20 +31,13 @@ class VerifyTngNotifySignature
                 $request->header('Request-Time'),
                 $request->getContent(),
                 $this->extractSignatureValue($request->header('Signature')),
-                file_get_contents(config('tng-ewallet.public_key_path')),
+                $this->readPublicKey(),
             );
         } catch (SignatureVerificationException) {
             return response()->json(['message' => 'Invalid signature.'], 401);
         }
 
         return $next($request);
-    }
-
-    protected function extractSignatureValue(string $signatureHeader): string
-    {
-        preg_match('/signature=(.+)$/', $signatureHeader, $matches);
-
-        return $matches[1] ?? '';
     }
 
     protected function isRequestTimeFresh(string $requestTime): bool

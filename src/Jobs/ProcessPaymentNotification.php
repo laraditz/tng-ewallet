@@ -64,12 +64,16 @@ class ProcessPaymentNotification
             return;
         }
 
-        $payment = Payment::query()
-            ->where(function ($query) use ($paymentId, $paymentRequestId) {
-                $query->when($paymentId, fn ($q) => $q->orWhere('payment_id', $paymentId))
-                    ->when($paymentRequestId, fn ($q) => $q->orWhere('payment_request_id', $paymentRequestId));
-            })
-            ->first();
+        // payment_request_id is DB-unique; payment_id is not (no constraint
+        // enforces it), so prefer the unique key and only fall back to
+        // payment_id if no request-id match is found or one wasn't provided.
+        $payment = $paymentRequestId !== null
+            ? Payment::where('payment_request_id', $paymentRequestId)->first()
+            : null;
+
+        if ($payment === null && $paymentId !== null) {
+            $payment = Payment::where('payment_id', $paymentId)->first();
+        }
 
         $payment?->update([
             'status' => $this->mapResultStatusToPaymentStatus($result['resultStatus'] ?? null)->value,

@@ -76,17 +76,6 @@ class TngClient implements ClientInterface
         }
     }
 
-    protected function readPublicKey(): string
-    {
-        $publicKeyPath = config('tng-ewallet.public_key_path');
-
-        if (! is_readable($publicKeyPath)) {
-            throw new SignatureVerificationException("The public key file at \"{$publicKeyPath}\" does not exist or is not readable.");
-        }
-
-        return file_get_contents($publicKeyPath);
-    }
-
     protected function logApiCall(string $uri, array $data, ?\Illuminate\Http\Client\Response $response, ?bool $signatureVerified, float $startedAt): void
     {
         // Only trust parsed result fields and the raw body from a response that
@@ -119,13 +108,6 @@ class TngClient implements ClientInterface
         }
 
         return null;
-    }
-
-    protected function extractSignatureValue(string $signatureHeader): string
-    {
-        preg_match('/signature=(.+)$/', $signatureHeader, $matches);
-
-        return $matches[1] ?? '';
     }
 
     protected function assertConfigured(): void
