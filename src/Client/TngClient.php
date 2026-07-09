@@ -9,6 +9,7 @@ use Laraditz\TngEwallet\Client\Concerns\VerifiesResponseSignature;
 use Laraditz\TngEwallet\Client\Contracts\ClientInterface;
 use Laraditz\TngEwallet\Exceptions\ApiException;
 use Laraditz\TngEwallet\Exceptions\ConfigurationException;
+use Laraditz\TngEwallet\Exceptions\SignatureVerificationException;
 use Laraditz\TngEwallet\Models\ApiLog;
 
 class TngClient implements ClientInterface
@@ -35,6 +36,7 @@ class TngClient implements ClientInterface
         $headers = $this->buildSigningHeaders($clientId, $requestTime, (int) config('tng-ewallet.key_version'), $signature);
 
         $response = null;
+        $signatureVerified = null;
         $startedAt = microtime(true);
 
         try {
@@ -52,26 +54,48 @@ class TngClient implements ClientInterface
                     $response->header('Response-Time'),
                     $response->body(),
                     $this->extractSignatureValue($response->header('Signature')),
-                    file_get_contents(config('tng-ewallet.public_key_path')),
+                    $this->readPublicKey(),
                 );
+                $signatureVerified = true;
             }
 
             return $response->json();
+        } catch (SignatureVerificationException $exception) {
+            $signatureVerified = false;
+
+            throw $exception;
         } finally {
-            $this->logApiCall($uri, $data, $response, $startedAt);
+            $this->logApiCall($uri, $data, $response, $signatureVerified, $startedAt);
         }
     }
 
-    protected function logApiCall(string $uri, array $data, ?\Illuminate\Http\Client\Response $response, float $startedAt): void
+    protected function readPublicKey(): string
     {
-        $result = $response?->json('result') ?? [];
+        $publicKeyPath = config('tng-ewallet.public_key_path');
+
+        if (! is_readable($publicKeyPath)) {
+            throw new SignatureVerificationException("The public key file at \"{$publicKeyPath}\" does not exist or is not readable.");
+        }
+
+        return file_get_contents($publicKeyPath);
+    }
+
+    protected function logApiCall(string $uri, array $data, ?\Illuminate\Http\Client\Response $response, ?bool $signatureVerified, float $startedAt): void
+    {
+        // Only trust parsed result fields and the raw body from a response that
+        // was either verified successfully or never required verification in
+        // the first place — never persist fields from a response whose
+        // signature verification failed, since they may be forged.
+        $trustworthy = $signatureVerified !== false;
+        $result = $trustworthy ? ($response?->json('result') ?? []) : [];
 
         ApiLog::create([
             'endpoint' => $uri,
             'reference_id' => $this->extractReferenceId($data),
             'request_payload' => $data,
-            'response_payload' => $response?->json(),
+            'response_payload' => $trustworthy ? $response?->json() : null,
             'http_status' => $response?->status(),
+            'signature_verified' => $signatureVerified,
             'result_status' => $result['resultStatus'] ?? null,
             'result_code' => $result['resultCode'] ?? null,
             'result_message' => $result['resultMessage'] ?? null,
