@@ -17,6 +17,7 @@ class ApiLog extends Model
             'request_payload' => 'array',
             'response_payload' => 'array',
             'result_status' => ResultStatus::class,
+            'signature_verified' => 'boolean',
         ];
     }
 }
