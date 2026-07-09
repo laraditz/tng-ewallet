@@ -4,6 +4,7 @@ namespace Laraditz\TngEwallet\Services;
 
 use Laraditz\TngEwallet\Client\Contracts\ClientInterface;
 use Laraditz\TngEwallet\Models\Refund;
+use Laraditz\TngEwallet\Responses\InquiryRefundResponse;
 use Laraditz\TngEwallet\Responses\RefundResponse;
 
 class RefundService
@@ -31,5 +32,10 @@ class RefundService
         ]);
 
         return $response;
+    }
+
+    public function inquiry(array $data): InquiryRefundResponse
+    {
+        return new InquiryRefundResponse($this->client->post('/v1/payments/inquiryRefund', $data));
     }
 }
