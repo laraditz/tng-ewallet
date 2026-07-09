@@ -130,3 +130,15 @@ To revoke a binding:
 ```php
 Tng::authorization()->cancelToken(['accessToken' => $token->accessToken]);
 ```
+
+## Handling `U` (Unknown) and `A` (Accepted) results
+
+Every response DTO exposes `isSuccessful()` (`S`), `isAccepted()` (`A`), `isFailed()` (`F`), and `isUnknown()` (`U`). Two of these need explicit caller attention beyond a simple if/else:
+
+**`isAccepted()` on `pay()` is not a failure** — it's TNG's normal Cashier Payment success path. `PayResponse::isAccepted()` plus `$response->actionForm->redirectionUrl` is the documented golden-path branch (see the Cashier Payment example above). Treating `A` as an error will break the most common call in this SDK.
+
+**`isUnknown()` must never be treated as final.** Per TNG's own docs, a `U` result means an unknown exception occurred on the wallet's side — the SDK does **not** auto-retry or auto-inquire on your behalf. Specifically for `pay()`:
+
+- A `U` result must never be independently refunded or re-charged offline — the payment may still complete on TNG's side after you've observed `U`.
+- Use `Tng::payment()->inquiry(['paymentRequestId' => $id])` to check the real status once you're ready, rather than assuming failure or success.
+- The same caution applies to `Tng::refund()->create()` — a `U` refund result must not be treated as failed and retried, since the original refund may still be processing.
