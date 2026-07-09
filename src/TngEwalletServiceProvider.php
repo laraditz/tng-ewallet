@@ -8,7 +8,7 @@ class TngEwalletServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->mergeConfigFrom(__DIR__.'/../config/tng-ewallet.php', 'tng-ewallet');
     }
 
     public function boot(): void
