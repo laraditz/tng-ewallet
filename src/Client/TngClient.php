@@ -7,6 +7,7 @@ use Laraditz\TngEwallet\Client\Concerns\HandlesSigning;
 use Laraditz\TngEwallet\Client\Concerns\MakesHttpRequests;
 use Laraditz\TngEwallet\Client\Concerns\VerifiesResponseSignature;
 use Laraditz\TngEwallet\Client\Contracts\ClientInterface;
+use Illuminate\Http\Client\ConnectionException;
 use Laraditz\TngEwallet\Exceptions\ApiException;
 use Laraditz\TngEwallet\Exceptions\ConfigurationException;
 use Laraditz\TngEwallet\Exceptions\SignatureVerificationException;
@@ -64,6 +65,12 @@ class TngClient implements ClientInterface
             $signatureVerified = false;
 
             throw $exception;
+        } catch (ConnectionException $exception) {
+            throw new ApiException(
+                "TNG API request failed: {$exception->getMessage()}",
+                response: null,
+                statusCode: null,
+            );
         } finally {
             $this->logApiCall($uri, $data, $response, $signatureVerified, $startedAt);
         }
