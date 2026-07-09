@@ -42,6 +42,13 @@ class AuthorizationService
 
     public function cancelToken(array $data): CancelTokenResponse
     {
-        return new CancelTokenResponse($this->client->post('/v1/authorizations/cancelToken', $data));
+        $response = new CancelTokenResponse($this->client->post('/v1/authorizations/cancelToken', $data));
+
+        AccessToken::where('access_token', $data['accessToken'])->first()?->update([
+            'status' => AccessTokenStatus::Cancelled->value,
+            'cancelled_at' => now(),
+        ]);
+
+        return $response;
     }
 }
