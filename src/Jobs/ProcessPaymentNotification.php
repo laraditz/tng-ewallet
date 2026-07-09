@@ -5,6 +5,7 @@ namespace Laraditz\TngEwallet\Jobs;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Laraditz\TngEwallet\Enums\PaymentStatus;
 use Laraditz\TngEwallet\Enums\ResultStatus;
+use Laraditz\TngEwallet\Events\PaymentNotified;
 use Laraditz\TngEwallet\Models\Notification;
 use Laraditz\TngEwallet\Models\Payment;
 
@@ -41,6 +42,8 @@ class ProcessPaymentNotification
         ]);
 
         $this->updateMatchingPayment($result);
+
+        event(new PaymentNotified($this->payload));
     }
 
     protected function updateMatchingPayment(array $result): void
