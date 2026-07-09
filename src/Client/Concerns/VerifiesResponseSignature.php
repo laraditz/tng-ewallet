@@ -25,4 +25,22 @@ trait VerifiesResponseSignature
             throw new SignatureVerificationException('The response signature could not be verified against the configured TNG public key.');
         }
     }
+
+    protected function extractSignatureValue(string $signatureHeader): string
+    {
+        preg_match('/signature=(.+)$/', $signatureHeader, $matches);
+
+        return $matches[1] ?? '';
+    }
+
+    protected function readPublicKey(): string
+    {
+        $publicKeyPath = config('tng-ewallet.public_key_path');
+
+        if (! is_readable($publicKeyPath)) {
+            throw new SignatureVerificationException("The public key file at \"{$publicKeyPath}\" does not exist or is not readable.");
+        }
+
+        return file_get_contents($publicKeyPath);
+    }
 }
