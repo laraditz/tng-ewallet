@@ -41,7 +41,16 @@ class ProcessPaymentNotification
             'ack_sent_at' => now(),
         ]);
 
-        $this->updateMatchingPayment($result);
+        // The Notification row above is the durable record of this delivery.
+        // A failure updating the Payment row (e.g. a transient DB error) must
+        // not swallow that record or prevent PaymentNotified from firing —
+        // there is no upstream retry to fall back on, since TNG already
+        // received a successful ack before this job ever ran.
+        try {
+            $this->updateMatchingPayment($result);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
 
         event(new PaymentNotified($this->payload));
     }
