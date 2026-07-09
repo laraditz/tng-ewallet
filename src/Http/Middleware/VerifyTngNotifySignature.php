@@ -5,6 +5,7 @@ namespace Laraditz\TngEwallet\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Laraditz\TngEwallet\Client\Concerns\VerifiesResponseSignature;
+use Laraditz\TngEwallet\Exceptions\SignatureVerificationException;
 
 class VerifyTngNotifySignature
 {
@@ -12,14 +13,18 @@ class VerifyTngNotifySignature
 
     public function handle(Request $request, Closure $next)
     {
-        $this->assertValidSignature(
-            '/'.ltrim($request->path(), '/'),
-            $request->header('Client-Id'),
-            $request->header('Request-Time'),
-            $request->getContent(),
-            $this->extractSignatureValue($request->header('Signature')),
-            file_get_contents(config('tng-ewallet.public_key_path')),
-        );
+        try {
+            $this->assertValidSignature(
+                '/'.ltrim($request->path(), '/'),
+                $request->header('Client-Id'),
+                $request->header('Request-Time'),
+                $request->getContent(),
+                $this->extractSignatureValue($request->header('Signature')),
+                file_get_contents(config('tng-ewallet.public_key_path')),
+            );
+        } catch (SignatureVerificationException) {
+            return response()->json(['message' => 'Invalid signature.'], 401);
+        }
 
         return $next($request);
     }
