@@ -8,4 +8,18 @@ trait HandlesSigning
     {
         return "POST {$uri}\n{$clientId}.{$requestTime}.{$body}";
     }
+
+    protected function sign(string $content, string $privateKeyPath): string
+    {
+        $privateKey = file_get_contents($privateKeyPath);
+
+        openssl_sign($content, $rawSignature, $privateKey, OPENSSL_ALGO_SHA256);
+
+        return $this->base64UrlEncode($rawSignature);
+    }
+
+    protected function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
 }
