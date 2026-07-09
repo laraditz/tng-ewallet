@@ -9,12 +9,19 @@ class AccessToken extends Model
 {
     protected $table = 'tng_ewallet_access_tokens';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'customer_id', 'reference_client_id',
+        'access_token', 'access_token_expiry_time',
+        'refresh_token', 'refresh_token_expiry_time',
+        'grant_type', 'status', 'cancelled_at',
+        'result_status', 'result_code',
+    ];
 
     protected function casts(): array
     {
         return [
             'access_token_expiry_time' => 'datetime',
+            'refresh_token' => 'encrypted',
             'refresh_token_expiry_time' => 'datetime',
             'status' => AccessTokenStatus::class,
             'cancelled_at' => 'datetime',

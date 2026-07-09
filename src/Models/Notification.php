@@ -9,7 +9,13 @@ class Notification extends Model
 {
     protected $table = 'tng_ewallet_notifications';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'payment_id', 'payment_request_id', 'customer_id',
+        'result_status', 'result_code', 'result_message',
+        'payment_amount_currency', 'payment_amount_value', 'payment_time',
+        'payment_fail_reason', 'extend_info',
+        'signature_verified', 'raw_payload', 'ack_sent_at',
+    ];
 
     protected function casts(): array
     {
