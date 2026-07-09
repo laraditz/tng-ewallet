@@ -6,6 +6,7 @@ use Laraditz\TngEwallet\Client\Contracts\ClientInterface;
 use Laraditz\TngEwallet\Enums\AccessTokenStatus;
 use Laraditz\TngEwallet\Models\AccessToken;
 use Laraditz\TngEwallet\Responses\ApplyTokenResponse;
+use Laraditz\TngEwallet\Responses\CancelTokenResponse;
 use Laraditz\TngEwallet\Responses\PrepareResponse;
 
 class AuthorizationService
@@ -37,5 +38,10 @@ class AuthorizationService
         ]);
 
         return $response;
+    }
+
+    public function cancelToken(array $data): CancelTokenResponse
+    {
+        return new CancelTokenResponse($this->client->post('/v1/authorizations/cancelToken', $data));
     }
 }
