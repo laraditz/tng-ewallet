@@ -3,12 +3,15 @@
 namespace Laraditz\TngEwallet;
 
 use Illuminate\Support\ServiceProvider;
+use Laraditz\TngEwallet\Client\TngClient;
 
 class TngEwalletServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/tng-ewallet.php', 'tng-ewallet');
+
+        $this->app->singleton(TngClient::class);
     }
 
     public function boot(): void
