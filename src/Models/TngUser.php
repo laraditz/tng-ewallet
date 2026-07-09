@@ -9,7 +9,9 @@ class TngUser extends Model
 {
     protected $table = 'tng_ewallet_users';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id', 'access_token_id', 'user_info', 'last_fetched_at',
+    ];
 
     protected function casts(): array
     {
