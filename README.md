@@ -38,3 +38,53 @@ Set these in your `.env`:
 | `TNG_NOTIFY_PATH` | Path the inbound `notifyPayment` webhook is registered at | `/tng-ewallet/notify` |
 
 `client_id`, `partner_id`, and `private_key_path` are required — a missing value throws `ConfigurationException` before any HTTP call is made.
+
+## Cashier Payment (redirect checkout)
+
+This is the documented golden path: create a payment, redirect the user to TNG's hosted cashier page, then receive the result asynchronously via the webhook.
+
+```php
+use Laraditz\TngEwallet\Facades\Tng;
+
+$response = Tng::payment()->pay([
+    'partnerId' => config('tng-ewallet.partner_id'),
+    'paymentRequestId' => (string) Str::uuid(), // your own unique ID — the SDK never generates one for you
+    'paymentOrderTitle' => 'Order #1234',
+    'productCode' => '51051000101000100001', // Cashier Payment product code
+    'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'], // smallest currency unit
+    'paymentFactor' => ['isCashierPayment' => true],
+    'paymentNotifyUrl' => route('tng-ewallet.notify'), // or config('tng-ewallet.notify_path') resolved to an absolute URL
+    'envInfo' => ['terminalType' => 'MINI_APP'],
+]);
+
+if ($response->isAccepted()) {
+    // The normal Cashier Payment path — redirect the user to finish payment.
+    return redirect()->away($response->actionForm->redirectionUrl);
+}
+
+if ($response->isFailed()) {
+    // $response->resultCode / $response->resultMessage explain why.
+}
+
+if ($response->isUnknown()) {
+    // See "Handling U (Unknown) results" below — do not treat as final.
+}
+```
+
+`paymentNotifyUrl` must point at this package's auto-registered webhook route (`config('tng-ewallet.notify_path')`, default `/tng-ewallet/notify`) — that's what TNG calls when the payment reaches a final state. Listen for the result in your own listener:
+
+```php
+use Laraditz\TngEwallet\Events\PaymentNotified;
+
+class HandlePaymentNotified implements ShouldQueue // recommended, though not required — see the afterResponse() note below
+{
+    public function handle(PaymentNotified $event): void
+    {
+        $payload = $event->payload; // the raw, already-verified notifyPayment body
+
+        // $payload['paymentResult']['resultStatus'] is 'S' or 'F'.
+        // Persist your own order state here — this package never touches
+        // your application's domain model, only its own audit tables.
+    }
+}
+```
