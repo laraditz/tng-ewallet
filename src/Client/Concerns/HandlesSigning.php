@@ -2,6 +2,8 @@
 
 namespace Laraditz\TngEwallet\Client\Concerns;
 
+use Laraditz\TngEwallet\Exceptions\SigningException;
+
 trait HandlesSigning
 {
     protected function buildContentToBeSigned(string $uri, string $clientId, string $requestTime, string $body): string
@@ -11,9 +13,21 @@ trait HandlesSigning
 
     protected function sign(string $content, string $privateKeyPath): string
     {
+        if (! is_readable($privateKeyPath)) {
+            throw new SigningException("The private key file at \"{$privateKeyPath}\" does not exist or is not readable.");
+        }
+
         $privateKey = file_get_contents($privateKeyPath);
 
-        openssl_sign($content, $rawSignature, $privateKey, OPENSSL_ALGO_SHA256);
+        $privateKeyResource = openssl_pkey_get_private($privateKey);
+
+        if ($privateKeyResource === false) {
+            throw new SigningException("The private key at \"{$privateKeyPath}\" is not a valid PEM-encoded RSA key.");
+        }
+
+        if (! openssl_sign($content, $rawSignature, $privateKeyResource, OPENSSL_ALGO_SHA256)) {
+            throw new SigningException('Failed to sign the request content with the configured private key.');
+        }
 
         return $this->base64UrlEncode($rawSignature);
     }
