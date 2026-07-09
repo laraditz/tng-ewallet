@@ -88,3 +88,45 @@ class HandlePaymentNotified implements ShouldQueue // recommended, though not re
     }
 }
 ```
+
+## Agreement Payment (stored-credential auto-debit)
+
+Used once a user has bound their account to your app and authorized recurring/one-off charges without re-entering payment details each time. Three steps: bind, apply for a token, then pay with it.
+
+```php
+use Laraditz\TngEwallet\Facades\Tng;
+
+// 1. Prepare — kicks off the binding flow, returns a URL for the user to authorize.
+$prepare = Tng::authorization()->prepare([
+    'referenceClientId' => 'your-mini-program-client-id',
+]);
+// Redirect / hand $prepare->authURL to your Mini Program frontend.
+
+// 2. Apply for an access token — after the user authorizes, you'll receive an authCode.
+$token = Tng::authorization()->applyToken([
+    'grantType' => 'AUTHORIZATION_CODE',
+    'authCode' => $authCodeFromMiniProgram,
+]);
+// $token->accessToken / $token->customerId are now persisted in tng_ewallet_access_tokens.
+
+// 3. Pay using the access token — no cashier redirect needed.
+$response = Tng::payment()->pay([
+    'partnerId' => config('tng-ewallet.partner_id'),
+    'paymentRequestId' => (string) Str::uuid(),
+    'paymentOrderTitle' => 'Order #1234',
+    'productCode' => '51051000101000100031', // Agreement Payment product code
+    'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'],
+    'paymentFactor' => ['isAgreementPay' => true],
+    'paymentAuthCode' => $token->accessToken,
+    'paymentNotifyUrl' => route('tng-ewallet.notify'),
+    'envInfo' => ['terminalType' => 'MINI_APP'],
+]);
+```
+
+Refreshing an expired access token uses the same `applyToken()` call with `grantType: REFRESH_TOKEN` — each call creates a **new** `tng_ewallet_access_tokens` row rather than overwriting the old one, so rotation history is preserved.
+
+To revoke a binding:
+
+```php
+Tng::authorization()->cancelToken(['accessToken' => $token->accessToken]);
+```
