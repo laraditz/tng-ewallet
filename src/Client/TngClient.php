@@ -7,6 +7,7 @@ use Laraditz\TngEwallet\Client\Concerns\HandlesSigning;
 use Laraditz\TngEwallet\Client\Concerns\MakesHttpRequests;
 use Laraditz\TngEwallet\Client\Concerns\VerifiesResponseSignature;
 use Laraditz\TngEwallet\Client\Contracts\ClientInterface;
+use Laraditz\TngEwallet\Exceptions\ConfigurationException;
 
 class TngClient implements ClientInterface
 {
@@ -15,8 +16,12 @@ class TngClient implements ClientInterface
     use MakesHttpRequests;
     use VerifiesResponseSignature;
 
+    protected const REQUIRED_CONFIG_KEYS = ['client_id', 'partner_id', 'private_key_path'];
+
     public function post(string $uri, array $data): array
     {
+        $this->assertConfigured();
+
         $clientId = config('tng-ewallet.client_id');
         $requestTime = $this->generateRequestTime();
         $body = json_encode($data);
@@ -51,5 +56,14 @@ class TngClient implements ClientInterface
         preg_match('/signature=(.+)$/', $signatureHeader, $matches);
 
         return $matches[1] ?? '';
+    }
+
+    protected function assertConfigured(): void
+    {
+        foreach (self::REQUIRED_CONFIG_KEYS as $key) {
+            if (empty(config("tng-ewallet.{$key}"))) {
+                throw new ConfigurationException("The \"tng-ewallet.{$key}\" config value is required but missing.");
+            }
+        }
     }
 }
