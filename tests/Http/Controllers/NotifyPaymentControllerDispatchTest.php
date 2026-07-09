@@ -10,7 +10,7 @@ test('the controller dispatches ProcessPaymentNotification with the parsed paylo
 
     $uri = '/tng-ewallet/notify';
     $clientId = 'TEST_CLIENT';
-    $requestTime = '2019-05-28T12:12:14.000+08:00';
+    $requestTime = now()->format('Y-m-d\TH:i:s.vP');
     $payload = ['paymentId' => 'pay-1', 'paymentRequestId' => 'pr-1'];
     $body = json_encode($payload);
 

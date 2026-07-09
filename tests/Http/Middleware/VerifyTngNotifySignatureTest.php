@@ -22,7 +22,7 @@ test('a validly signed notify request passes through the middleware', function (
 
     $uri = '/tng-ewallet/notify';
     $clientId = 'TEST_CLIENT';
-    $requestTime = '2019-05-28T12:12:14.000+08:00';
+    $requestTime = now()->format('Y-m-d\TH:i:s.vP');
     $body = json_encode(['paymentId' => 'pay-1', 'paymentRequestId' => 'pr-1']);
 
     $content = "POST {$uri}\n{$clientId}.{$requestTime}.{$body}";

@@ -10,7 +10,7 @@ test('an invalid notify signature returns HTTP 401 and never reaches the next ha
 
     $request = Request::create('/tng-ewallet/notify', 'POST', [], [], [], [], $body);
     $request->headers->set('Client-Id', 'TEST_CLIENT');
-    $request->headers->set('Request-Time', '2019-05-28T12:12:14.000+08:00');
+    $request->headers->set('Request-Time', now()->format('Y-m-d\TH:i:s.vP'));
     $request->headers->set('Signature', 'algorithm=RSA256, keyVersion=1, signature=not-a-real-signature');
 
     $nextCalled = false;
