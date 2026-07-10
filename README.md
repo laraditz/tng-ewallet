@@ -8,17 +8,20 @@ A Laravel SDK for Touch 'n Go's Mini Program OpenAPI — RSA256 request signing,
 composer require laraditz/tng-ewallet
 ```
 
-Publish the config file:
+Publish the config file and the migrations:
 
 ```bash
 php artisan vendor:publish --tag=tng-ewallet-config
+php artisan vendor:publish --tag=tng-ewallet-migrations
 ```
 
-Migrations auto-load — no publish step is needed for them. Run them the normal way:
+Then run them:
 
 ```bash
 php artisan migrate
 ```
+
+Re-running `vendor:publish --tag=tng-ewallet-migrations` is safe — it checks your app's `database/migrations` directory and only publishes files that aren't already there (matched by filename, ignoring the timestamp prefix), so upgrading the package never creates duplicate migrations.
 
 ## Configuration
 
