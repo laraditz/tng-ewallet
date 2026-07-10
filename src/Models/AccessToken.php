@@ -17,14 +17,11 @@ class AccessToken extends Model
         'result_status', 'result_code',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'access_token_expiry_time' => 'datetime',
-            'refresh_token' => 'encrypted',
-            'refresh_token_expiry_time' => 'datetime',
-            'status' => AccessTokenStatus::class,
-            'cancelled_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'access_token_expiry_time' => 'datetime',
+        'refresh_token' => 'encrypted',
+        'refresh_token_expiry_time' => 'datetime',
+        'status' => AccessTokenStatus::class,
+        'cancelled_at' => 'datetime',
+    ];
 }

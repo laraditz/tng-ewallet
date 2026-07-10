@@ -17,14 +17,11 @@ class Notification extends Model
         'signature_verified', 'raw_payload', 'ack_sent_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'result_status' => ResultStatus::class,
-            'payment_time' => 'datetime',
-            'signature_verified' => 'boolean',
-            'raw_payload' => 'array',
-            'ack_sent_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'result_status' => ResultStatus::class,
+        'payment_time' => 'datetime',
+        'signature_verified' => 'boolean',
+        'raw_payload' => 'array',
+        'ack_sent_at' => 'datetime',
+    ];
 }

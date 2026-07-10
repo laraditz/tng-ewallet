@@ -16,13 +16,10 @@ class ApiLog extends Model
         'duration_ms',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'request_payload' => 'encrypted:array',
-            'response_payload' => 'encrypted:array',
-            'result_status' => ResultStatus::class,
-            'signature_verified' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'request_payload' => 'encrypted:array',
+        'response_payload' => 'encrypted:array',
+        'result_status' => ResultStatus::class,
+        'signature_verified' => 'boolean',
+    ];
 }
