@@ -39,6 +39,8 @@ Set these in your `.env`:
 
 `client_id`, `partner_id`, and `private_key_path` are required — a missing value throws `ConfigurationException` before any HTTP call is made.
 
+`partner_id` is automatically included in every call that needs it (`prepare`, `pay`, `inquiryPayment`, `refund`, `inquiryRefund`) — you never need to pass it yourself, though an explicit `partnerId` in your own call data always takes precedence if you do.
+
 ## Cashier Payment (redirect checkout)
 
 This is the documented golden path: create a payment, redirect the user to TNG's hosted cashier page, then receive the result asynchronously via the webhook.
@@ -47,13 +49,12 @@ This is the documented golden path: create a payment, redirect the user to TNG's
 use Laraditz\TngEwallet\Facades\Tng;
 
 $response = Tng::payment()->pay([
-    'partnerId' => config('tng-ewallet.partner_id'),
+    // partnerId and paymentNotifyUrl are filled in automatically — see below.
     'paymentRequestId' => (string) Str::uuid(), // your own unique ID — the SDK never generates one for you
     'paymentOrderTitle' => 'Order #1234',
     'productCode' => '51051000101000100001', // Cashier Payment product code
     'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'], // smallest currency unit
     'paymentFactor' => ['isCashierPayment' => true],
-    'paymentNotifyUrl' => route('tng-ewallet.notify'), // or config('tng-ewallet.notify_path') resolved to an absolute URL
     'envInfo' => ['terminalType' => 'MINI_APP'],
 ]);
 
@@ -71,7 +72,7 @@ if ($response->isUnknown()) {
 }
 ```
 
-`paymentNotifyUrl` must point at this package's auto-registered webhook route (`config('tng-ewallet.notify_path')`, default `/tng-ewallet/notify`) — that's what TNG calls when the payment reaches a final state. Listen for the result in your own listener:
+`pay()` defaults `paymentNotifyUrl` to this package's own auto-registered webhook route (`config('tng-ewallet.notify_path')`, default `/tng-ewallet/notify`) — that's what TNG calls when the payment reaches a final state, and it's what the middleware/controller/job pipeline below is built to receive. Listen for the result in your own listener:
 
 ```php
 use Laraditz\TngEwallet\Events\PaymentNotified;
@@ -88,6 +89,8 @@ class HandlePaymentNotified implements ShouldQueue // recommended, though not re
     }
 }
 ```
+
+> **Don't override `paymentNotifyUrl` unless you're prepared to handle the webhook yourself.** You *can* pass your own `paymentNotifyUrl` and it will be used instead of the package default — but this package's signature-verifying middleware, controller, and `PaymentNotified` event only run for requests that hit *its own* registered route. If you point TNG at a different URL, none of that pipeline applies to that call: you're responsible for verifying the inbound signature, returning the mandatory ack, and processing the notification entirely on your own. Leave `paymentNotifyUrl` unset unless you have a specific reason to bypass this package's webhook handling.
 
 ## Agreement Payment (stored-credential auto-debit)
 
@@ -111,14 +114,13 @@ $token = Tng::authorization()->applyToken([
 
 // 3. Pay using the access token — no cashier redirect needed.
 $response = Tng::payment()->pay([
-    'partnerId' => config('tng-ewallet.partner_id'),
+    // partnerId and paymentNotifyUrl are filled in automatically — see above.
     'paymentRequestId' => (string) Str::uuid(),
     'paymentOrderTitle' => 'Order #1234',
     'productCode' => '51051000101000100031', // Agreement Payment product code
     'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'],
     'paymentFactor' => ['isAgreementPay' => true],
     'paymentAuthCode' => $token->accessToken,
-    'paymentNotifyUrl' => route('tng-ewallet.notify'),
     'envInfo' => ['terminalType' => 'MINI_APP'],
 ]);
 ```
@@ -173,6 +175,6 @@ Every response DTO exposes `isSuccessful()` (`S`), `isAccepted()` (`A`), `isFail
 
 ## Security
 
-- `access_token` (in `tng_ewallet_access_tokens`) is stored **as plaintext**, deliberately — `cancelToken()` and `user()` need to look it up by exact value, and Laravel's `encrypted` cast is non-deterministic (a random IV per encryption), which breaks `WHERE access_token = ?` lookups. `refresh_token` has no such lookup requirement anywhere in the package, so it **is** encrypted. Apply database-level access restrictions to this table — it holds bearer credentials that authorize auto-debit charges.
+- `access_token` and `refresh_token` (in `tng_ewallet_access_tokens`) are both encrypted at rest. Since Laravel's `encrypted` cast is non-deterministic (a random IV per encryption), `cancelToken()`/`user()` can't look up a row with `WHERE access_token = ?` against the encrypted column — a separate `access_token_hash` column (a deterministic HMAC-SHA256, keyed on your app's `APP_KEY`) is used for that lookup instead, while the actual token value stays encrypted. Apply database-level access restrictions to this table regardless — it holds bearer credentials that authorize auto-debit charges. Note: rotating `APP_KEY` invalidates both the encrypted values and the hash lookups for any existing rows.
 - `tng_ewallet_api_logs.request_payload`/`response_payload` are encrypted at rest, since they capture full request/response bodies (including `accessToken`/`refreshToken` values that pass through `applyToken()`/`cancelToken()`) with no exact-match lookup requirement to justify plaintext.
 - Every table in this package is a full audit trail — every call, success or failure, is recorded. Treat these tables as containing sensitive payment and customer data, and apply the same access controls you'd use for any PII/financial-data store.
