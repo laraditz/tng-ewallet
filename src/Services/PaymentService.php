@@ -14,6 +14,8 @@ class PaymentService
 {
     use DefaultsPartnerId;
 
+    protected const DEFAULT_ENV_INFO = ['terminalType' => 'MINI_APP'];
+
     public function __construct(protected ClientInterface $client)
     {
     }
@@ -22,6 +24,7 @@ class PaymentService
     {
         $data = $this->withPartnerId($data);
         $data += ['paymentNotifyUrl' => route('tng-ewallet.notify')];
+        $data['envInfo'] = array_merge(self::DEFAULT_ENV_INFO, $data['envInfo'] ?? []);
 
         $response = new PayResponse($this->client->post('/v1/payments/pay', $data));
 
