@@ -13,13 +13,10 @@ class TngUser extends Model
         'user_id', 'access_token_id', 'user_info', 'last_fetched_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'user_info' => 'array',
-            'last_fetched_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'user_info' => 'array',
+        'last_fetched_at' => 'datetime',
+    ];
 
     public function accessToken(): BelongsTo
     {

@@ -131,6 +131,20 @@ To revoke a binding:
 Tng::authorization()->cancelToken(['accessToken' => $token->accessToken]);
 ```
 
+## User info and messaging
+
+Given an access token from the Agreement Payment flow above:
+
+```php
+$userInfo = Tng::user()->inquiryByAccessToken(['accessToken' => $token->accessToken]);
+$userInfo->userInfo; // raw array, e.g. ['userId' => '...']
+
+Tng::message()->sendByAccessToken([
+    'accessToken' => $token->accessToken,
+    'message' => 'Your order has shipped!',
+]);
+```
+
 ## Handling `U` (Unknown) and `A` (Accepted) results
 
 Every response DTO exposes `isSuccessful()` (`S`), `isAccepted()` (`A`), `isFailed()` (`F`), and `isUnknown()` (`U`). Two of these need explicit caller attention beyond a simple if/else:

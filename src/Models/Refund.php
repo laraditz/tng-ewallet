@@ -17,12 +17,9 @@ class Refund extends Model
         'refund_reason', 'refund_fail_reason', 'refund_time',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'refund_status' => RefundStatus::class,
-            'result_status' => ResultStatus::class,
-            'refund_time' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'refund_status' => RefundStatus::class,
+        'result_status' => ResultStatus::class,
+        'refund_time' => 'datetime',
+    ];
 }

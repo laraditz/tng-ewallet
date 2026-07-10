@@ -18,16 +18,13 @@ class Payment extends Model
         'raw_pay_response', 'raw_notify_payload',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'status' => PaymentStatus::class,
-            'result_status' => ResultStatus::class,
-            'payment_time' => 'datetime',
-            'auth_expiry_time' => 'datetime',
-            'notified_at' => 'datetime',
-            'raw_pay_response' => 'array',
-            'raw_notify_payload' => 'array',
-        ];
-    }
+    protected $casts = [
+        'status' => PaymentStatus::class,
+        'result_status' => ResultStatus::class,
+        'payment_time' => 'datetime',
+        'auth_expiry_time' => 'datetime',
+        'notified_at' => 'datetime',
+        'raw_pay_response' => 'array',
+        'raw_notify_payload' => 'array',
+    ];
 }

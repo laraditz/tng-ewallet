@@ -25,6 +25,8 @@ class PaymentService
             'status' => $this->mapResultStatusToPaymentStatus($response->resultStatus)->value,
             'result_status' => $response->resultStatus,
             'result_code' => $response->resultCode,
+            'currency' => $data['paymentAmount']['currency'] ?? null,
+            'amount' => $data['paymentAmount']['value'] ?? null,
             'action_form_type' => $response->actionForm?->actionFormType,
             'redirection_url' => $response->actionForm?->redirectionUrl,
             'payment_time' => $response->paymentTime,
