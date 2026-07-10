@@ -8,15 +8,21 @@ use Laraditz\TngEwallet\Enums\ResultStatus;
 use Laraditz\TngEwallet\Models\Payment;
 use Laraditz\TngEwallet\Responses\InquiryPaymentResponse;
 use Laraditz\TngEwallet\Responses\PayResponse;
+use Laraditz\TngEwallet\Services\Concerns\DefaultsPartnerId;
 
 class PaymentService
 {
+    use DefaultsPartnerId;
+
     public function __construct(protected ClientInterface $client)
     {
     }
 
     public function pay(array $data): PayResponse
     {
+        $data = $this->withPartnerId($data);
+        $data += ['paymentNotifyUrl' => route('tng-ewallet.notify')];
+
         $response = new PayResponse($this->client->post('/v1/payments/pay', $data));
 
         Payment::create([
@@ -39,7 +45,7 @@ class PaymentService
 
     public function inquiry(array $data): InquiryPaymentResponse
     {
-        return new InquiryPaymentResponse($this->client->post('/v1/payments/inquiryPayment', $data));
+        return new InquiryPaymentResponse($this->client->post('/v1/payments/inquiryPayment', $this->withPartnerId($data)));
     }
 
     protected function mapResultStatusToPaymentStatus(?string $resultStatus): PaymentStatus

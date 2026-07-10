@@ -8,16 +8,19 @@ use Laraditz\TngEwallet\Models\AccessToken;
 use Laraditz\TngEwallet\Responses\ApplyTokenResponse;
 use Laraditz\TngEwallet\Responses\CancelTokenResponse;
 use Laraditz\TngEwallet\Responses\PrepareResponse;
+use Laraditz\TngEwallet\Services\Concerns\DefaultsPartnerId;
 
 class AuthorizationService
 {
+    use DefaultsPartnerId;
+
     public function __construct(protected ClientInterface $client)
     {
     }
 
     public function prepare(array $data): PrepareResponse
     {
-        return new PrepareResponse($this->client->post('/v1/authorizations/prepare', $data));
+        return new PrepareResponse($this->client->post('/v1/authorizations/prepare', $this->withPartnerId($data)));
     }
 
     public function applyToken(array $data): ApplyTokenResponse
@@ -28,6 +31,7 @@ class AuthorizationService
             'customer_id' => $response->customerId,
             'reference_client_id' => $data['referenceClientId'] ?? null,
             'access_token' => $response->accessToken,
+            'access_token_hash' => $response->accessToken !== null ? AccessToken::hashToken($response->accessToken) : null,
             'access_token_expiry_time' => $response->accessTokenExpiryTime,
             'refresh_token' => $response->refreshToken,
             'refresh_token_expiry_time' => $response->refreshTokenExpiryTime,
@@ -44,7 +48,7 @@ class AuthorizationService
     {
         $response = new CancelTokenResponse($this->client->post('/v1/authorizations/cancelToken', $data));
 
-        AccessToken::where('access_token', $data['accessToken'])->first()?->update([
+        AccessToken::where('access_token_hash', AccessToken::hashToken($data['accessToken']))->first()?->update([
             'status' => AccessTokenStatus::Cancelled->value,
             'cancelled_at' => now(),
         ]);

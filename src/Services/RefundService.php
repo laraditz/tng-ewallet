@@ -6,16 +6,19 @@ use Laraditz\TngEwallet\Client\Contracts\ClientInterface;
 use Laraditz\TngEwallet\Models\Refund;
 use Laraditz\TngEwallet\Responses\InquiryRefundResponse;
 use Laraditz\TngEwallet\Responses\RefundResponse;
+use Laraditz\TngEwallet\Services\Concerns\DefaultsPartnerId;
 
 class RefundService
 {
+    use DefaultsPartnerId;
+
     public function __construct(protected ClientInterface $client)
     {
     }
 
     public function create(array $data): RefundResponse
     {
-        $response = new RefundResponse($this->client->post('/v1/payments/refund', $data));
+        $response = new RefundResponse($this->client->post('/v1/payments/refund', $this->withPartnerId($data)));
 
         Refund::create([
             'refund_id' => $response->refundId,
@@ -36,7 +39,7 @@ class RefundService
 
     public function inquiry(array $data): InquiryRefundResponse
     {
-        $response = new InquiryRefundResponse($this->client->post('/v1/payments/inquiryRefund', $data));
+        $response = new InquiryRefundResponse($this->client->post('/v1/payments/inquiryRefund', $this->withPartnerId($data)));
 
         $refundRequestId = $data['refundRequestId'] ?? $response->refundRequestId;
         $refund = $refundRequestId !== null ? Refund::where('refund_request_id', $refundRequestId)->first() : null;

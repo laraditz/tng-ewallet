@@ -8,7 +8,7 @@ test('tng_ewallet_access_tokens table exists with the documented columns', funct
 
     expect(Schema::hasColumns('tng_ewallet_access_tokens', [
         'id', 'customer_id', 'reference_client_id',
-        'access_token', 'access_token_expiry_time',
+        'access_token', 'access_token_hash', 'access_token_expiry_time',
         'refresh_token', 'refresh_token_expiry_time',
         'grant_type', 'status', 'cancelled_at',
         'result_status', 'result_code',
@@ -16,14 +16,14 @@ test('tng_ewallet_access_tokens table exists with the documented columns', funct
     ]))->toBeTrue();
 });
 
-test('access_token column is indexed for exact-value lookup', function () {
+test('access_token_hash column is indexed for exact-value lookup (access_token itself is encrypted)', function () {
     $indexes = collect(DB::select("PRAGMA index_list('tng_ewallet_access_tokens')"));
 
-    $hasAccessTokenIndex = $indexes->contains(function ($index) {
+    $hasHashIndex = $indexes->contains(function ($index) {
         $columns = collect(DB::select("PRAGMA index_info('{$index->name}')"));
 
-        return $columns->contains('name', 'access_token');
+        return $columns->contains('name', 'access_token_hash');
     });
 
-    expect($hasAccessTokenIndex)->toBeTrue();
+    expect($hasHashIndex)->toBeTrue();
 });

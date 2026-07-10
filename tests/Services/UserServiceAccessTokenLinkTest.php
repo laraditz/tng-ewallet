@@ -12,6 +12,7 @@ test('inquiryByAccessToken() links access_token_id to the matching AccessToken r
 
     $token = AccessToken::create([
         'access_token' => 'tok_known',
+        'access_token_hash' => AccessToken::hashToken('tok_known'),
         'grant_type' => 'AUTHORIZATION_CODE',
         'status' => 'active',
     ]);
