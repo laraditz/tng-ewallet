@@ -57,13 +57,12 @@ This is the documented golden path: create a payment, redirect the user to TNG's
 use Laraditz\TngEwallet\Facades\Tng;
 
 $response = Tng::payment()->pay([
-    // partnerId and paymentNotifyUrl are filled in automatically — see below.
+    // partnerId, paymentNotifyUrl, and envInfo are filled in automatically — see below.
     'paymentRequestId' => (string) Str::uuid(), // your own unique ID — the SDK never generates one for you
     'paymentOrderTitle' => 'Order #1234',
     'productCode' => '51051000101000100001', // Cashier Payment product code
     'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'], // smallest currency unit
     'paymentFactor' => ['isCashierPayment' => true],
-    'envInfo' => ['terminalType' => 'MINI_APP'],
 ]);
 
 if ($response->isAccepted()) {
@@ -122,14 +121,13 @@ $token = Tng::authorization()->applyToken([
 
 // 3. Pay using the access token — no cashier redirect needed.
 $response = Tng::payment()->pay([
-    // partnerId and paymentNotifyUrl are filled in automatically — see above.
+    // partnerId, paymentNotifyUrl, and envInfo are filled in automatically — see above.
     'paymentRequestId' => (string) Str::uuid(),
     'paymentOrderTitle' => 'Order #1234',
     'productCode' => '51051000101000100031', // Agreement Payment product code
     'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'],
     'paymentFactor' => ['isAgreementPay' => true],
     'paymentAuthCode' => $token->accessToken,
-    'envInfo' => ['terminalType' => 'MINI_APP'],
 ]);
 ```
 
