@@ -3,7 +3,9 @@
 namespace Laraditz\TngEwallet\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Laraditz\TngEwallet\Casts\TngEncrypted;
 use Laraditz\TngEwallet\Enums\AccessTokenStatus;
+use Laraditz\TngEwallet\Exceptions\ConfigurationException;
 
 class AccessToken extends Model
 {
@@ -18,9 +20,9 @@ class AccessToken extends Model
     ];
 
     protected $casts = [
-        'access_token' => 'encrypted',
+        'access_token' => TngEncrypted::class,
         'access_token_expiry_time' => 'datetime',
-        'refresh_token' => 'encrypted',
+        'refresh_token' => TngEncrypted::class,
         'refresh_token_expiry_time' => 'datetime',
         'status' => AccessTokenStatus::class,
         'cancelled_at' => 'datetime',
@@ -29,10 +31,17 @@ class AccessToken extends Model
     /**
      * Deterministic lookup key for an access token — access_token itself is
      * encrypted (non-deterministic ciphertext), so exact-match queries go
-     * through this HMAC instead.
+     * through this HMAC instead. Keyed on the package's own dedicated key,
+     * not APP_KEY, since that key is designed to never rotate.
      */
     public static function hashToken(string $token): string
     {
-        return hash_hmac('sha256', $token, config('app.key'));
+        $key = config('tng-ewallet.encryption_key');
+
+        if (empty($key)) {
+            throw new ConfigurationException('The "tng-ewallet.encryption_key" config value is required but missing.');
+        }
+
+        return hash_hmac('sha256', $token, $key);
     }
 }

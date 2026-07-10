@@ -5,6 +5,7 @@ namespace Laraditz\TngEwallet;
 use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
 use Laraditz\TngEwallet\Client\TngClient;
+use Laraditz\TngEwallet\Console\Commands\GenerateEncryptionKeyCommand;
 
 class TngEwalletServiceProvider extends ServiceProvider
 {
@@ -27,6 +28,10 @@ class TngEwalletServiceProvider extends ServiceProvider
             ], 'tng-ewallet-config');
 
             $this->publishes($this->buildMigrationPublishMap(), 'tng-ewallet-migrations');
+
+            $this->commands([
+                GenerateEncryptionKeyCommand::class,
+            ]);
         }
     }
 
