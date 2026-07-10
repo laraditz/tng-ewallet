@@ -1,1 +1,188 @@
-# Laravel Touch 'n Go eWallet
+# Laravel Touch 'n Go e-wallet
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/laraditz/tng-ewallet.svg?style=flat-square)](https://packagist.org/packages/laraditz/tng-ewallet)
+[![Total Downloads](https://img.shields.io/packagist/dt/laraditz/tng-ewallet.svg?style=flat-square)](https://packagist.org/packages/laraditz/tng-ewallet)
+[![License](https://img.shields.io/packagist/l/laraditz/tng-ewallet?style=flat-square)](./LICENSE.md)
+
+A Laravel SDK for Touch 'n Go's Mini Program OpenAPI — RSA256 request signing, response/webhook signature verification, and a persistence layer covering every call, access token, payment, refund, and inbound notification.
+
+## Installation
+
+```bash
+composer require laraditz/tng-ewallet
+```
+
+Publish the config file and the migrations:
+
+```bash
+php artisan vendor:publish --tag=tng-ewallet-config
+php artisan vendor:publish --tag=tng-ewallet-migrations
+```
+
+Then run them:
+
+```bash
+php artisan migrate
+```
+
+Re-running `vendor:publish --tag=tng-ewallet-migrations` is safe — it checks your app's `database/migrations` directory and only publishes files that aren't already there (matched by filename, ignoring the timestamp prefix), so upgrading the package never creates duplicate migrations.
+
+## Configuration
+
+Set these in your `.env`:
+
+| Variable                        | Description                                                                                                                                                                          | Default                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `TNG_SANDBOX`                   | Use TNG's sandbox host instead of production                                                                                                                                         | `true`                                                          |
+| `TNG_BASE_URL`                  | Explicit base URL override — takes precedence over `TNG_SANDBOX` if set                                                                                                              | _(none)_                                                        |
+| `TNG_CLIENT_ID`                 | Your TNG-assigned Client-Id                                                                                                                                                          | _(required)_                                                    |
+| `TNG_PARTNER_ID`                | Your TNG-assigned partner ID                                                                                                                                                         | _(required)_                                                    |
+| `TNG_PRIVATE_KEY_PATH`          | Path to your RSA private key (PEM), used to sign every outbound request                                                                                                              | `storage_path('tng/private.pem')`                               |
+| `TNG_PUBLIC_KEY_PATH`           | Path to TNG's RSA public key (PEM), used to verify responses and inbound notifications                                                                                               | `storage_path('tng/tng_public.pem')`                            |
+| `TNG_KEY_VERSION`               | Key version sent in the `Signature` header                                                                                                                                           | `1`                                                             |
+| `TNG_VERIFY_RESPONSE_SIGNATURE` | Verify every response's signature before returning data                                                                                                                              | `true`                                                          |
+| `TNG_TIMEOUT`                   | HTTP timeout in seconds                                                                                                                                                              | `30`                                                            |
+| `TNG_NOTIFY_PATH`               | Path the inbound `notifyPayment` webhook is registered at                                                                                                                            | `/tng-ewallet/notify`                                           |
+| `TNG_ENCRYPTION_KEY`            | Dedicated key for encrypting sensitive stored data (independent of `APP_KEY`). Generate one with `php artisan tng-ewallet:generate-key` — set it once and never change it afterwards | _(required if using the Agreement Payment / access-token flow)_ |
+
+`client_id`, `partner_id`, and `private_key_path` are required — a missing value throws `ConfigurationException` before any HTTP call is made. `encryption_key` is only required if you use the Agreement Payment flow (anything involving access tokens) — a Cashier Payment-only integration never needs to set it.
+
+`partner_id` is automatically included in every call that needs it (`prepare`, `pay`, `inquiryPayment`, `refund`, `inquiryRefund`) — you never need to pass it yourself, though an explicit `partnerId` in your own call data always takes precedence if you do.
+
+## Cashier Payment (redirect checkout)
+
+This is the documented golden path: create a payment, redirect the user to TNG's hosted cashier page, then receive the result asynchronously via the webhook.
+
+```php
+use Laraditz\TngEwallet\Facades\Tng;
+
+$response = Tng::payment()->pay([
+    // partnerId and paymentNotifyUrl are filled in automatically — see below.
+    'paymentRequestId' => (string) Str::uuid(), // your own unique ID — the SDK never generates one for you
+    'paymentOrderTitle' => 'Order #1234',
+    'productCode' => '51051000101000100001', // Cashier Payment product code
+    'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'], // smallest currency unit
+    'paymentFactor' => ['isCashierPayment' => true],
+    'envInfo' => ['terminalType' => 'MINI_APP'],
+]);
+
+if ($response->isAccepted()) {
+    // The normal Cashier Payment path — redirect the user to finish payment.
+    return redirect()->away($response->actionForm->redirectionUrl);
+}
+
+if ($response->isFailed()) {
+    // $response->resultCode / $response->resultMessage explain why.
+}
+
+if ($response->isUnknown()) {
+    // See "Handling U (Unknown) results" below — do not treat as final.
+}
+```
+
+`pay()` defaults `paymentNotifyUrl` to this package's own auto-registered webhook route (`config('tng-ewallet.notify_path')`, default `/tng-ewallet/notify`) — that's what TNG calls when the payment reaches a final state, and it's what the middleware/controller/job pipeline below is built to receive. Listen for the result in your own listener:
+
+```php
+use Laraditz\TngEwallet\Events\PaymentNotified;
+
+class HandlePaymentNotified implements ShouldQueue // recommended, though not required — see the afterResponse() note below
+{
+    public function handle(PaymentNotified $event): void
+    {
+        $payload = $event->payload; // the raw, already-verified notifyPayment body
+
+        // $payload['paymentResult']['resultStatus'] is 'S' or 'F'.
+        // Persist your own order state here — this package never touches
+        // your application's domain model, only its own audit tables.
+    }
+}
+```
+
+> **Don't override `paymentNotifyUrl` unless you're prepared to handle the webhook yourself.** You _can_ pass your own `paymentNotifyUrl` and it will be used instead of the package default — but this package's signature-verifying middleware, controller, and `PaymentNotified` event only run for requests that hit _its own_ registered route. If you point TNG at a different URL, none of that pipeline applies to that call: you're responsible for verifying the inbound signature, returning the mandatory ack, and processing the notification entirely on your own. Leave `paymentNotifyUrl` unset unless you have a specific reason to bypass this package's webhook handling.
+
+## Agreement Payment (stored-credential auto-debit)
+
+Used once a user has bound their account to your app and authorized recurring/one-off charges without re-entering payment details each time. Three steps: bind, apply for a token, then pay with it.
+
+```php
+use Laraditz\TngEwallet\Facades\Tng;
+
+// 1. Prepare — kicks off the binding flow, returns a URL for the user to authorize.
+$prepare = Tng::authorization()->prepare([
+    'referenceClientId' => 'your-mini-program-client-id',
+]);
+// Redirect / hand $prepare->authURL to your Mini Program frontend.
+
+// 2. Apply for an access token — after the user authorizes, you'll receive an authCode.
+$token = Tng::authorization()->applyToken([
+    'grantType' => 'AUTHORIZATION_CODE',
+    'authCode' => $authCodeFromMiniProgram,
+]);
+// $token->accessToken / $token->customerId are now persisted in tng_ewallet_access_tokens.
+
+// 3. Pay using the access token — no cashier redirect needed.
+$response = Tng::payment()->pay([
+    // partnerId and paymentNotifyUrl are filled in automatically — see above.
+    'paymentRequestId' => (string) Str::uuid(),
+    'paymentOrderTitle' => 'Order #1234',
+    'productCode' => '51051000101000100031', // Agreement Payment product code
+    'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'],
+    'paymentFactor' => ['isAgreementPay' => true],
+    'paymentAuthCode' => $token->accessToken,
+    'envInfo' => ['terminalType' => 'MINI_APP'],
+]);
+```
+
+Refreshing an expired access token uses the same `applyToken()` call with `grantType: REFRESH_TOKEN` — each call creates a **new** `tng_ewallet_access_tokens` row rather than overwriting the old one, so rotation history is preserved.
+
+To revoke a binding:
+
+```php
+Tng::authorization()->cancelToken(['accessToken' => $token->accessToken]);
+```
+
+## User info and messaging
+
+Given an access token from the Agreement Payment flow above:
+
+```php
+$userInfo = Tng::user()->inquiryByAccessToken(['accessToken' => $token->accessToken]);
+$userInfo->userInfo; // raw array, e.g. ['userId' => '...']
+
+Tng::message()->sendByAccessToken([
+    'accessToken' => $token->accessToken,
+    'message' => 'Your order has shipped!',
+]);
+```
+
+## Handling `U` (Unknown) and `A` (Accepted) results
+
+Every response DTO exposes `isSuccessful()` (`S`), `isAccepted()` (`A`), `isFailed()` (`F`), and `isUnknown()` (`U`). Two of these need explicit caller attention beyond a simple if/else:
+
+**`isAccepted()` on `pay()` is not a failure** — it's TNG's normal Cashier Payment success path. `PayResponse::isAccepted()` plus `$response->actionForm->redirectionUrl` is the documented golden-path branch (see the Cashier Payment example above). Treating `A` as an error will break the most common call in this SDK.
+
+**`isUnknown()` must never be treated as final.** Per TNG's own docs, a `U` result means an unknown exception occurred on the wallet's side — the SDK does **not** auto-retry or auto-inquire on your behalf. Specifically for `pay()`:
+
+- A `U` result must never be independently refunded or re-charged offline — the payment may still complete on TNG's side after you've observed `U`.
+- Use `Tng::payment()->inquiry(['paymentRequestId' => $id])` to check the real status once you're ready, rather than assuming failure or success.
+- The same caution applies to `Tng::refund()->create()` — a `U` refund result must not be treated as failed and retried, since the original refund may still be processing.
+
+## Operational notes
+
+**The webhook ack is guaranteed to be sent before `PaymentNotified` fires**, via Laravel's `dispatch(...)->afterResponse()` — not a queue. This relies on `fastcgi_finish_request()`, which is standard under PHP-FPM (the overwhelming majority of production Laravel deployments). Under non-FPM SAPIs (`php artisan serve`, some Octane configurations), verify this ordering holds in your own environment before relying on it in production.
+
+**There is no retry if your own `PaymentNotified` listener throws**, and none from TNG either — by the time the job runs, TNG has already received a successful ack and will not redeliver. Make listeners resilient (catch your own exceptions, log failures, reconcile via `Tng::payment()->inquiry()` if needed) rather than assuming the event always completes cleanly.
+
+**Listeners must be idempotent.** TNG retries the notification until it receives an `S` ack; each delivery gets its own `tng_ewallet_notifications` row (the package does not de-duplicate), so the same `PaymentNotified` event can fire more than once for the same payment. Design your listener so processing the same payload twice is safe.
+
+**`notify_path` must match exactly** what you configured as `paymentNotifyUrl` when calling `pay()` — including scheme, host, and any trailing slash. A mismatch (e.g. a reverse proxy that rewrites paths) causes legitimate notifications to be rejected with 401, not silently accepted; there's no way for this package to detect a misconfigured path itself.
+
+**Add your own rate limiting** (via your reverse proxy, CDN, or a `throttle:` middleware sized to your expected TNG callback volume) if the notify endpoint needs protection beyond signature verification — the package intentionally ships with none, since a wrong hardcoded limit could reject legitimate TNG traffic.
+
+**Rotate your TNG public key file atomically** (write to a temp file, then `rename()`) rather than editing it in place — the key is read fresh from disk on every verification, and a torn read during a non-atomic rewrite would cause verification failures, not a security gap (verification fails closed either way).
+
+## Security
+
+- Access and refresh tokens are encrypted at rest using `TNG_ENCRYPTION_KEY`, a key dedicated to this package and kept independent of your app's `APP_KEY`. Generate it once with `php artisan tng-ewallet:generate-key` and never change it afterwards — there's no migration path if it's rotated or lost, and existing tokens would stop working. Exclude it from any blanket "rotate all secrets" tooling or policy.
+- Credentials are automatically stripped from logged request/response data before it's stored, so a database backup or read replica doesn't expose them.
+- This package's tables are a full audit trail of your payment activity — every call, success or failure, is recorded. Apply the same database-level access controls you'd use for any PII/financial-data store.
