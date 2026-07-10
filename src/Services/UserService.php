@@ -20,7 +20,9 @@ class UserService
         $userId = $response->userInfo['userId'] ?? null;
 
         if ($userId !== null) {
-            $accessTokenId = AccessToken::where('access_token', $data['accessToken'] ?? null)->value('id');
+            $accessTokenId = isset($data['accessToken'])
+                ? AccessToken::where('access_token_hash', AccessToken::hashToken($data['accessToken']))->value('id')
+                : null;
 
             TngUser::updateOrCreate(
                 ['user_id' => $userId],

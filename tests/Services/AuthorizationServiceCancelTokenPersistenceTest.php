@@ -12,6 +12,7 @@ test('cancelToken() marks the matching AccessToken row as cancelled', function (
 
     $token = AccessToken::create([
         'access_token' => 'tok_to_cancel',
+        'access_token_hash' => AccessToken::hashToken('tok_to_cancel'),
         'grant_type' => 'AUTHORIZATION_CODE',
         'status' => AccessTokenStatus::Active->value,
     ]);
