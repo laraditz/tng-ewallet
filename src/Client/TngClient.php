@@ -11,6 +11,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Laraditz\TngEwallet\Exceptions\ApiException;
 use Laraditz\TngEwallet\Exceptions\ConfigurationException;
 use Laraditz\TngEwallet\Exceptions\SignatureVerificationException;
+use Laraditz\TngEwallet\Models\AccessToken;
 use Laraditz\TngEwallet\Models\ApiLog;
 
 class TngClient implements ClientInterface
@@ -23,6 +24,8 @@ class TngClient implements ClientInterface
     protected const REQUIRED_CONFIG_KEYS = ['client_id', 'partner_id', 'private_key_path'];
 
     protected const REFERENCE_ID_KEYS = ['paymentRequestId', 'refundRequestId', 'customerId'];
+
+    protected const REDACTED_KEYS = ['accessToken', 'refreshToken', 'authCode'];
 
     public function post(string $uri, array $data): array
     {
@@ -85,11 +88,13 @@ class TngClient implements ClientInterface
         $trustworthy = $signatureVerified !== false;
         $result = $trustworthy ? ($response?->json('result') ?? []) : [];
 
+        $responsePayload = $trustworthy ? $response?->json() : null;
+
         ApiLog::create([
             'endpoint' => $uri,
             'reference_id' => $this->extractReferenceId($data),
-            'request_payload' => $data,
-            'response_payload' => $trustworthy ? $response?->json() : null,
+            'request_payload' => $this->redactSensitiveFields($data),
+            'response_payload' => is_null($responsePayload) ? null : $this->redactSensitiveFields($responsePayload),
             'http_status' => $response?->status(),
             'signature_verified' => $signatureVerified,
             'result_status' => $result['resultStatus'] ?? null,
@@ -97,6 +102,17 @@ class TngClient implements ClientInterface
             'result_message' => $result['resultMessage'] ?? null,
             'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
         ]);
+    }
+
+    protected function redactSensitiveFields(array $data): array
+    {
+        foreach (self::REDACTED_KEYS as $key) {
+            if (isset($data[$key])) {
+                $data[$key] = '[redacted:'.AccessToken::hashToken($data[$key]).']';
+            }
+        }
+
+        return $data;
     }
 
     protected function extractReferenceId(array $data): ?string

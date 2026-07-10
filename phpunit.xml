@@ -24,5 +24,6 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="APP_KEY" value="base64:Uu3SFB8bqYZBHNAd0DiWZk1zR/dq3RmWx1jyxvKGXJ4="/>
+        <env name="TNG_ENCRYPTION_KEY" value="base64:8QzJmR2vN5tK9pL3xW7bC1dF6hY0aE4iO8uT2sG5jM0="/>
     </php>
 </phpunit>

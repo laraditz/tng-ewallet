@@ -17,8 +17,8 @@ class ApiLog extends Model
     ];
 
     protected $casts = [
-        'request_payload' => 'encrypted:array',
-        'response_payload' => 'encrypted:array',
+        'request_payload' => 'array',
+        'response_payload' => 'array',
         'result_status' => ResultStatus::class,
         'signature_verified' => 'boolean',
     ];
