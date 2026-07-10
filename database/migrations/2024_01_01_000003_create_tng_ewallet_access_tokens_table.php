@@ -13,13 +13,16 @@ return new class extends Migration
             $table->string('customer_id')->nullable()->index();
             $table->string('reference_client_id')->nullable();
 
-            // Stored as plaintext (not encrypted) so cancelToken()/user() can
-            // look up a row by exact token value — Laravel's encrypted cast
-            // is non-deterministic and cannot support this lookup.
-            $table->string('access_token')->index();
+            // access_token is encrypted at rest, so it can't be looked up with an
+            // exact-match WHERE clause (Laravel's encrypted cast is
+            // non-deterministic). access_token_hash — a deterministic
+            // HMAC-SHA256 keyed on APP_KEY — is what cancelToken()/user()
+            // actually query against.
+            $table->text('access_token');
+            $table->string('access_token_hash')->nullable()->index();
             $table->dateTime('access_token_expiry_time')->nullable();
 
-            $table->string('refresh_token')->nullable();
+            $table->text('refresh_token')->nullable();
             $table->dateTime('refresh_token_expiry_time')->nullable();
 
             $table->string('grant_type');

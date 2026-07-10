@@ -13,9 +13,13 @@ return new class extends Migration
             $table->string('endpoint');
             $table->string('reference_id')->nullable()->index();
 
-            $table->json('request_payload');
-            $table->json('response_payload')->nullable();
+            // longText, not json — request_payload/response_payload hold encrypted
+            // ciphertext (base64 text), which a json column type rejects on
+            // MySQL/Postgres since they enforce valid JSON content.
+            $table->longText('request_payload')->nullable();
+            $table->longText('response_payload')->nullable();
             $table->unsignedSmallInteger('http_status')->nullable();
+            $table->boolean('signature_verified')->nullable();
 
             $table->string('result_status')->nullable();
             $table->string('result_code')->nullable();
