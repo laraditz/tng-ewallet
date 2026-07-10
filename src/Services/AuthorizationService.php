@@ -8,16 +8,19 @@ use Laraditz\TngEwallet\Models\AccessToken;
 use Laraditz\TngEwallet\Responses\ApplyTokenResponse;
 use Laraditz\TngEwallet\Responses\CancelTokenResponse;
 use Laraditz\TngEwallet\Responses\PrepareResponse;
+use Laraditz\TngEwallet\Services\Concerns\DefaultsPartnerId;
 
 class AuthorizationService
 {
+    use DefaultsPartnerId;
+
     public function __construct(protected ClientInterface $client)
     {
     }
 
     public function prepare(array $data): PrepareResponse
     {
-        return new PrepareResponse($this->client->post('/v1/authorizations/prepare', $data));
+        return new PrepareResponse($this->client->post('/v1/authorizations/prepare', $this->withPartnerId($data)));
     }
 
     public function applyToken(array $data): ApplyTokenResponse
