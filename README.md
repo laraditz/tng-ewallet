@@ -1,5 +1,9 @@
 # Laravel Touch 'n Go e-wallet
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/laraditz/tng-ewallet.svg?style=flat-square)](https://packagist.org/packages/laraditz/tng-ewallet)
+[![Total Downloads](https://img.shields.io/packagist/dt/laraditz/tng-ewallet.svg?style=flat-square)](https://packagist.org/packages/laraditz/tng-ewallet)
+[![License](https://img.shields.io/packagist/l/laraditz/tng-ewallet?style=flat-square)](./LICENSE.md)
+
 A Laravel SDK for Touch 'n Go's Mini Program OpenAPI — RSA256 request signing, response/webhook signature verification, and a persistence layer covering every call, access token, payment, refund, and inbound notification.
 
 ## Installation
