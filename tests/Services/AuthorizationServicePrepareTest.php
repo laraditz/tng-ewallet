@@ -24,6 +24,6 @@ test('prepare() posts to /v1/authorizations/prepare and returns a PrepareRespons
     expect($response)->toBeInstanceOf(PrepareResponse::class)
         ->and($response->authId)->toBe('auth-123');
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v1/authorizations/prepare'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v1/authorizations/prepare'
         && $request['referenceClientId'] === 'ref-1');
 });

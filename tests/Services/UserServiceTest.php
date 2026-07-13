@@ -20,6 +20,6 @@ test('inquiryByAccessToken() posts to /v1/customers/user/inquiryUserInfoByAccess
     expect($response)->toBeInstanceOf(UserInfoResponse::class)
         ->and($response->userInfo)->toBe(['userId' => 'user-1']);
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v1/customers/user/inquiryUserInfoByAccessToken'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v1/customers/user/inquiryUserInfoByAccessToken'
         && $request['accessToken'] === 'tok_abc');
 });

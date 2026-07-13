@@ -19,6 +19,6 @@ test('cancelToken() posts to /v1/authorizations/cancelToken and returns a Cancel
     expect($response)->toBeInstanceOf(CancelTokenResponse::class)
         ->and($response->isSuccessful())->toBeTrue();
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v1/authorizations/cancelToken'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v1/authorizations/cancelToken'
         && $request['accessToken'] === 'tok_to_cancel');
 });

@@ -33,7 +33,7 @@ test('post() signs the request, dispatches it, and verifies the response signatu
     $responseBody = json_encode(['result' => ['resultStatus' => 'S', 'resultCode' => 'SUCCESS', 'resultMessage' => 'success']]);
     $responseClientId = 'TEST_CLIENT';
     $responseTime = '2019-05-28T12:12:14.000+08:00';
-    $contentToBeValidated = "POST /v1/payments/pay\n{$responseClientId}.{$responseTime}.{$responseBody}";
+    $contentToBeValidated = "POST /acl/api/v1/payments/pay\n{$responseClientId}.{$responseTime}.{$responseBody}";
     openssl_sign($contentToBeValidated, $rawSignature, $privateKeyPem, OPENSSL_ALGO_SHA256);
     $signature = rtrim(strtr(base64_encode($rawSignature), '+/', '-_'), '=');
 
@@ -50,7 +50,7 @@ test('post() signs the request, dispatches it, and verifies the response signatu
     expect($result)->toBe(['result' => ['resultStatus' => 'S', 'resultCode' => 'SUCCESS', 'resultMessage' => 'success']]);
 
     Http::assertSent(function ($request) {
-        return $request->url() === 'https://example.test/v1/payments/pay'
+        return $request->url() === 'https://example.test/acl/api/v1/payments/pay'
             && $request->hasHeader('Client-Id', 'TEST_CLIENT')
             && $request->hasHeader('Request-Time')
             && str_starts_with($request->header('Signature')[0], 'algorithm=RSA256, keyVersion=1, signature=');

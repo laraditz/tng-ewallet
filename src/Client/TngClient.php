@@ -31,11 +31,13 @@ class TngClient implements ClientInterface
     {
         $this->assertConfigured();
 
+        $fullUri = config('tng-ewallet.api_path').$uri;
+
         $clientId = config('tng-ewallet.client_id');
         $requestTime = $this->generateRequestTime();
         $body = json_encode($data);
 
-        $content = $this->buildContentToBeSigned($uri, $clientId, $requestTime, $body);
+        $content = $this->buildContentToBeSigned($fullUri, $clientId, $requestTime, $body);
         $signature = $this->sign($content, config('tng-ewallet.private_key_path'));
         $headers = $this->buildSigningHeaders($clientId, $requestTime, (int) config('tng-ewallet.key_version'), $signature);
 
@@ -47,13 +49,13 @@ class TngClient implements ClientInterface
             $response = $this->newRequest()
                 ->withHeaders($headers)
                 ->withBody($body, 'application/json; charset=UTF-8')
-                ->post($uri);
+                ->post($fullUri);
 
             $this->assertSuccessfulResponse($response);
 
             if (config('tng-ewallet.verify_response_signature')) {
                 $this->assertValidSignature(
-                    $uri,
+                    $fullUri,
                     $response->header('Client-Id'),
                     $response->header('Response-Time'),
                     $response->body(),
@@ -75,7 +77,7 @@ class TngClient implements ClientInterface
                 statusCode: null,
             );
         } finally {
-            $this->logApiCall($uri, $data, $response, $signatureVerified, $startedAt);
+            $this->logApiCall($fullUri, $data, $response, $signatureVerified, $startedAt);
         }
     }
 

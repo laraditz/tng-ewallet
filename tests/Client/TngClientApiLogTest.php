@@ -17,7 +17,7 @@ test('a successful call is persisted to tng_ewallet_api_logs', function () {
     expect(ApiLog::count())->toBe(1);
 
     $log = ApiLog::first();
-    expect($log->endpoint)->toBe('/v1/payments/pay')
+    expect($log->endpoint)->toBe('/acl/api/v1/payments/pay')
         ->and($log->http_status)->toBe(200)
         ->and($log->result_status->value)->toBe('S')
         ->and($log->request_payload)->toBe(['paymentRequestId' => 'pr-log-1']);

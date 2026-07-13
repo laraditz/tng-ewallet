@@ -24,7 +24,7 @@ test('inquiry() with only paymentId sends the correct payload', function () {
 
     expect($response)->toBeInstanceOf(InquiryPaymentResponse::class);
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v1/payments/inquiryPayment'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v1/payments/inquiryPayment'
         && $request['paymentId'] === 'pay-1');
 });
 

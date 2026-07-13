@@ -14,3 +14,7 @@ test('tng_ewallet_payments table exists with the documented columns', function (
         'created_at', 'updated_at',
     ]))->toBeTrue();
 });
+
+test('redirection_url is a text column, wide enough for TNG cashier URLs', function () {
+    expect(Schema::getColumnType('tng_ewallet_payments', 'redirection_url'))->toBe('text');
+});
