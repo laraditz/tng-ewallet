@@ -22,7 +22,7 @@ test('pay() posts to /v1/payments/pay and returns a PayResponse for Cashier Paym
         ->and($response->paymentId)->toBe('pay-cashier-1')
         ->and($response->actionForm->redirectionUrl)->toBe('https://m-sd.tngdigital.com.my/s/cashier/1');
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v1/payments/pay'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v1/payments/pay'
         && $request['paymentRequestId'] === 'pr-1');
 });
 

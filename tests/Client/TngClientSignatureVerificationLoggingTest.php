@@ -38,7 +38,7 @@ test('a successfully verified response is logged with signature_verified true', 
     config(['tng-ewallet.verify_response_signature' => true]);
 
     $responseBody = json_encode(['result' => ['resultStatus' => 'S', 'resultCode' => 'SUCCESS', 'resultMessage' => 'success']]);
-    $contentToBeValidated = "POST /v1/payments/pay\nTEST_CLIENT.2019-05-28T12:12:14.000+08:00.{$responseBody}";
+    $contentToBeValidated = "POST /acl/api/v1/payments/pay\nTEST_CLIENT.2019-05-28T12:12:14.000+08:00.{$responseBody}";
     openssl_sign($contentToBeValidated, $rawSignature, $privateKeyPem, OPENSSL_ALGO_SHA256);
     $signature = rtrim(strtr(base64_encode($rawSignature), '+/', '-_'), '=');
 

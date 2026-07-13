@@ -5,6 +5,7 @@ return [
     'base_url' => env('TNG_BASE_URL'),
     'sandbox_url' => 'https://api-sd.tngdigital.com.my',
     'production_url' => 'https://api.tngdigital.com.my',
+    'api_path' => '/acl/api',
     'client_id' => env('TNG_CLIENT_ID'),
     'partner_id' => env('TNG_PARTNER_ID'),
     'private_key_path' => env('TNG_PRIVATE_KEY_PATH', storage_path('tng/private.pem')),

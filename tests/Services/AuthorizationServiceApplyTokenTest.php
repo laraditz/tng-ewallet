@@ -30,7 +30,7 @@ test('applyToken() with AUTHORIZATION_CODE grant posts to /v1/authorizations/app
     expect($response)->toBeInstanceOf(ApplyTokenResponse::class)
         ->and($response->accessToken)->toBe('tok_abc');
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v1/authorizations/applyToken'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v1/authorizations/applyToken'
         && $request['grantType'] === 'AUTHORIZATION_CODE');
 });
 
