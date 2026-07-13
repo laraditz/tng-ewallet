@@ -5,6 +5,19 @@ All notable changes to `laraditz/tng-ewallet` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-07-13
+
+### Added
+- `pay()` now defaults `envInfo` to `['terminalType' => 'MINI_APP']` when the caller doesn't supply one; any caller-supplied keys still take precedence.
+- README: RSA key generation instructions (your keypair vs. TNG's — two separate keypairs, easy to mix up), and encryption key generation moved into Installation so neither is missed.
+
+### Changed
+- **Minimum supported Laravel version raised to 11.0** (previously 10.0) — avoids a `doctrine/dbal` dependency the `redirection_url` migration below would otherwise require on Laravel 10.
+
+### Fixed
+- Outbound requests now include the required `/acl/api` path segment (e.g. `https://api-sd.tngdigital.com.my/acl/api/v1/payments/pay`) — every API call was being sent to the wrong path. Request signing, response-signature verification, and the `tng_ewallet_api_logs.endpoint` field are all updated to match the corrected path.
+- `tng_ewallet_payments.redirection_url` widened from `varchar(255)` to `text` — TNG's real Cashier Payment redirect URL (with its RSA-signed query string) regularly exceeds 255 characters and was truncating on insert. Existing installs need `php artisan vendor:publish --tag=tng-ewallet-migrations && php artisan migrate` to pick up the new migration.
+
 ## [1.0.0] - 2026-07-10
 
 ### Added
