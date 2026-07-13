@@ -19,6 +19,6 @@ test('sendByAccessToken() posts to /v2/customers/message/sendByAccessToken and r
     expect($response)->toBeInstanceOf(SendMessageResponse::class)
         ->and($response->isSuccessful())->toBeTrue();
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v2/customers/message/sendByAccessToken'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v2/customers/message/sendByAccessToken'
         && $request['accessToken'] === 'tok_abc');
 });

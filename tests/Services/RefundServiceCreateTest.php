@@ -22,7 +22,7 @@ test('create() posts to /v1/payments/refund, returns a RefundResponse, and creat
     expect($response)->toBeInstanceOf(RefundResponse::class)
         ->and($response->refundId)->toBe('refund-create-1');
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/v1/payments/refund'
+    Http::assertSent(fn ($request) => $request->url() === 'https://example.test/acl/api/v1/payments/refund'
         && $request['refundRequestId'] === 'rr-1');
 
     expect(Refund::count())->toBe(1);
