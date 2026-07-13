@@ -29,6 +29,14 @@ php artisan migrate
 
 Re-running `vendor:publish --tag=tng-ewallet-migrations` is safe — it checks your app's `database/migrations` directory and only publishes files that aren't already there (matched by filename, ignoring the timestamp prefix), so upgrading the package never creates duplicate migrations.
 
+If you'll use the **Agreement Payment** flow (anything involving stored access tokens), also generate a dedicated encryption key now, before you go any further:
+
+```bash
+php artisan tng-ewallet:generate-key
+```
+
+This sets `TNG_ENCRYPTION_KEY` in your `.env` — independent of your app's `APP_KEY`, used to encrypt access/refresh tokens at rest. **Set it once and never change it afterwards** — there's no migration path if it's rotated or lost, and every stored token would stop working. A Cashier Payment-only integration never needs this.
+
 ## RSA keys
 
 TNG's signing scheme involves **two independent RSA keypairs**, not one:
@@ -64,7 +72,7 @@ Set these in your `.env`:
 | `TNG_VERIFY_RESPONSE_SIGNATURE` | Verify every response's signature before returning data                                                                                                                              | `true`                                                          |
 | `TNG_TIMEOUT`                   | HTTP timeout in seconds                                                                                                                                                              | `30`                                                            |
 | `TNG_NOTIFY_PATH`               | Path the inbound `notifyPayment` webhook is registered at                                                                                                                            | `/tng-ewallet/notify`                                           |
-| `TNG_ENCRYPTION_KEY`            | Dedicated key for encrypting sensitive stored data (independent of `APP_KEY`). Generate one with `php artisan tng-ewallet:generate-key` — set it once and never change it afterwards | _(required if using the Agreement Payment / access-token flow)_ |
+| `TNG_ENCRYPTION_KEY`            | Dedicated key for encrypting sensitive stored data (independent of `APP_KEY`) — see [Installation](#installation)                                                                   | _(required if using the Agreement Payment / access-token flow)_ |
 
 `client_id`, `partner_id`, and `private_key_path` are required — a missing value throws `ConfigurationException` before any HTTP call is made. `encryption_key` is only required if you use the Agreement Payment flow (anything involving access tokens) — a Cashier Payment-only integration never needs to set it.
 
@@ -202,6 +210,6 @@ Every response DTO exposes `isSuccessful()` (`S`), `isAccepted()` (`A`), `isFail
 
 ## Security
 
-- Access and refresh tokens are encrypted at rest using `TNG_ENCRYPTION_KEY`, a key dedicated to this package and kept independent of your app's `APP_KEY`. Generate it once with `php artisan tng-ewallet:generate-key` and never change it afterwards — there's no migration path if it's rotated or lost, and existing tokens would stop working. Exclude it from any blanket "rotate all secrets" tooling or policy.
+- Access and refresh tokens are encrypted at rest using `TNG_ENCRYPTION_KEY`, generated during [Installation](#installation) above. Exclude it from any blanket "rotate all secrets" tooling or policy — there's no migration path if it's rotated or lost.
 - Credentials are automatically stripped from logged request/response data before it's stored, so a database backup or read replica doesn't expose them.
 - This package's tables are a full audit trail of your payment activity — every call, success or failure, is recorded. Apply the same database-level access controls you'd use for any PII/financial-data store.
