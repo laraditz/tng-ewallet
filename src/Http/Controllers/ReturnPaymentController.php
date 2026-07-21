@@ -24,6 +24,10 @@ class ReturnPaymentController
         try {
             $inquiry = Tng::payment()->inquiry(['paymentRequestId' => $payment->payment_request_id]);
         } catch (\Throwable) {
+            $inquiry = null;
+        }
+
+        if (! $inquiry || ! $inquiry->isSuccessful()) {
             return response()->view('tng-ewallet::return', [
                 'state' => 'inquiry_failed',
                 'backUrl' => $backUrl,
