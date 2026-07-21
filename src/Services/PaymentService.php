@@ -24,6 +24,7 @@ class PaymentService
     {
         $data = $this->withPartnerId($data);
         $data += ['paymentNotifyUrl' => route('tng-ewallet.notify')];
+        $data += ['paymentReturnUrl' => route('tng-ewallet.return', ['payment_request_id' => $data['paymentRequestId']])];
         $data['envInfo'] = array_merge(self::DEFAULT_ENV_INFO, $data['envInfo'] ?? []);
 
         $response = new PayResponse($this->client->post('/v1/payments/pay', $data));
