@@ -18,6 +18,7 @@ Creates a payment. Works for both the Cashier Payment (hosted redirect) and Agre
 | `paymentAmount` | `['currency' => 'MYR', 'value' => '10000']` — `value` is the smallest currency unit |
 | `paymentFactor` | `['isCashierPayment' => true]` or `['isAgreementPay' => true]` |
 | `paymentAuthCode` | Required for Agreement Payment — the access token to charge |
+| `customerReturnUrl` | Optional. Your own "send the customer back here" destination — see [Return page](#return-page) below. Package-only: never sent to TNG, stripped from the outbound request. |
 
 Auto-filled if omitted — you don't need to pass these unless overriding:
 
@@ -25,9 +26,10 @@ Auto-filled if omitted — you don't need to pass these unless overriding:
 | --- | --- |
 | `partnerId` | From config |
 | `paymentNotifyUrl` | This package's own webhook route (`config('tng-ewallet.notify_path')`) |
+| `paymentReturnUrl` | This package's own return route (`config('tng-ewallet.return_path')`), with `paymentRequestId` appended — see [Return page](#return-page) below |
 | `envInfo` | Merged with `['terminalType' => 'MINI_APP']` |
 
-> Don't override `paymentNotifyUrl` unless you're prepared to handle the webhook yourself — see the note in the main [README](../README.md#cashier-payment-redirect-checkout).
+> Don't override `paymentNotifyUrl` or `paymentReturnUrl` unless you're prepared to handle them yourself — see the note in the main [README](../README.md#cashier-payment-redirect-checkout).
 
 **Example**
 
@@ -59,7 +61,27 @@ if ($response->isAccepted()) {
 
 `actionForm` (present when `isAccepted()`) exposes: `actionFormType`, `orderCode`, `redirectionUrl`.
 
-**Side effect:** creates a `Payment` row (`tng_ewallet_payments`) mapping `resultStatus` to a `PaymentStatus` enum (`Created`/`Accepted`/`Success`/`Failed`/`Unknown`), storing currency/amount, the action form fields, and the full raw response.
+**Side effect:** creates a `Payment` row (`tng_ewallet_payments`) mapping `resultStatus` to a `PaymentStatus` enum (`Created`/`Accepted`/`Success`/`Failed`/`Unknown`), storing currency/amount, the action form fields, `customer_return_url` (if you supplied one), and the full raw response.
+
+## Return page
+
+`GET config('tng-ewallet.return_path')` (default `/tng-ewallet/return`), route name `tng-ewallet.return`.
+
+TNG redirects the customer's browser here once the hosted cashier page finishes — the URL is the one `pay()` auto-filled into `paymentReturnUrl` above, with `paymentRequestId` appended. This package owns the whole page: it looks up the matching `Payment`, calls `inquiry()` live, and renders one of three states:
+
+- **Not found** — no `Payment` matches the `payment_request_id` in the URL (missing, unknown, or stale link). Shown as a friendly page, not a bare 404.
+- **Status** — the matched payment's live status, amount/currency, payment reference, and date/time, plus the fail reason whenever `inquiry()` returns one.
+- **Inquiry failed** — shown whenever `inquiry()` couldn't produce a confirmed answer, whether that's a technical failure (network error, timeout) or a well-formed "TNG has no record of this order" response. A generic "we couldn't confirm this payment's status right now" message is shown either way, rather than guessing.
+
+Every state includes a "Back" link/button, pointing at your `customerReturnUrl` (from the original `pay()` call) if one was supplied, otherwise `config('tng-ewallet.default_return_url')` (which itself defaults to `config('app.url')`).
+
+The `inquiry()` call made here is **read-only** — it's never written back to the `Payment` record. The `notifyPayment` webhook pipeline remains the only writer of persisted payment status, so this page can't race with it.
+
+The view is published under the `tng-ewallet-views` tag if you want to override its look:
+
+```bash
+php artisan vendor:publish --tag=tng-ewallet-views
+```
 
 ## inquiry()
 

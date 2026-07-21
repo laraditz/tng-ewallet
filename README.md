@@ -72,6 +72,8 @@ Set these in your `.env`:
 | `TNG_VERIFY_RESPONSE_SIGNATURE` | Verify every response's signature before returning data                                                                                                                              | `true`                                                          |
 | `TNG_TIMEOUT`                   | HTTP timeout in seconds                                                                                                                                                              | `30`                                                            |
 | `TNG_NOTIFY_PATH`               | Path the inbound `notifyPayment` webhook is registered at                                                                                                                            | `/tng-ewallet/notify`                                           |
+| `TNG_RETURN_PATH`               | Path the Cashier Payment return page is registered at — see [Return page](docs/payment.md#return-page)                                                                            | `/tng-ewallet/return`                                           |
+| `TNG_DEFAULT_RETURN_URL`        | Fallback "Back" destination on the return page when `pay()` wasn't given a `customerReturnUrl` — see [Return page](docs/payment.md#return-page)                                    | `config('app.url')`                                             |
 | `TNG_ENCRYPTION_KEY`            | Dedicated key for encrypting sensitive stored data (independent of `APP_KEY`) — see [Installation](#installation)                                                                   | _(required if using the Agreement Payment / access-token flow)_ |
 
 `client_id`, `partner_id`, and `private_key_path` are required — a missing value throws `ConfigurationException` before any HTTP call is made. `encryption_key` is only required if you use the Agreement Payment flow (anything involving access tokens) — a Cashier Payment-only integration never needs to set it.
@@ -146,12 +148,13 @@ This is the documented golden path: create a payment, redirect the user to TNG's
 use Laraditz\TngEwallet\Facades\Tng;
 
 $response = Tng::payment()->pay([
-    // partnerId, paymentNotifyUrl, and envInfo are filled in automatically — see below.
+    // partnerId, paymentNotifyUrl, paymentReturnUrl, and envInfo are filled in automatically — see below.
     'paymentRequestId' => (string) Str::uuid(), // your own unique ID — the SDK never generates one for you
     'paymentOrderTitle' => 'Order #1234',
     'productCode' => '51051000101000100001', // Cashier Payment product code
     'paymentAmount' => ['currency' => 'MYR', 'value' => '10000'], // smallest currency unit
     'paymentFactor' => ['isCashierPayment' => true],
+    'customerReturnUrl' => route('checkout.thanks'), // optional — see "Return page" below
 ]);
 
 if ($response->isAccepted()) {
@@ -187,6 +190,8 @@ class HandlePaymentNotified implements ShouldQueue // recommended, though not re
 ```
 
 > **Don't override `paymentNotifyUrl` unless you're prepared to handle the webhook yourself.** You _can_ pass your own `paymentNotifyUrl` and it will be used instead of the package default — but this package's signature-verifying middleware, controller, and `PaymentNotified` event only run for requests that hit _its own_ registered route. If you point TNG at a different URL, none of that pipeline applies to that call: you're responsible for verifying the inbound signature, returning the mandatory ack, and processing the notification entirely on your own. Leave `paymentNotifyUrl` unset unless you have a specific reason to bypass this package's webhook handling.
+
+`pay()` similarly defaults `paymentReturnUrl` to this package's own return route (`config('tng-ewallet.return_path')`, default `/tng-ewallet/return`) — that's where TNG redirects the customer's browser once the hosted cashier page finishes. This package owns that whole page: it looks up the payment, checks its live status via `inquiry()`, and shows a status page with a "Back" link. Pass `customerReturnUrl` (as in the example above) to control where that Back link points — otherwise it falls back to `config('tng-ewallet.default_return_url')`. See [docs/payment.md#return-page](docs/payment.md#return-page) for the full behavior, including the three states it can render.
 
 ## Agreement Payment (stored-credential auto-debit)
 
