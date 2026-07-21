@@ -15,6 +15,8 @@
         @if (! is_null($paymentFailReason))
             <p>Reason: {{ $paymentFailReason }}</p>
         @endif
+    @elseif ($state === 'inquiry_failed')
+        <p>We couldn't confirm this payment's status right now.</p>
     @endif
 
     <a href="{{ $backUrl }}">Back</a>

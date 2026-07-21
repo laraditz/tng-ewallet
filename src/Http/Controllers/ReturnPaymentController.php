@@ -21,7 +21,14 @@ class ReturnPaymentController
 
         $backUrl = $payment->customer_return_url ?? config('tng-ewallet.default_return_url');
 
-        $inquiry = Tng::payment()->inquiry(['paymentRequestId' => $payment->payment_request_id]);
+        try {
+            $inquiry = Tng::payment()->inquiry(['paymentRequestId' => $payment->payment_request_id]);
+        } catch (\Throwable) {
+            return response()->view('tng-ewallet::return', [
+                'state' => 'inquiry_failed',
+                'backUrl' => $backUrl,
+            ]);
+        }
 
         return response()->view('tng-ewallet::return', [
             'state' => 'status',
