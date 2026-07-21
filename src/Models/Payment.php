@@ -15,7 +15,7 @@ class Payment extends Model
         'status', 'result_status', 'result_code', 'payment_fail_reason',
         'currency', 'amount', 'action_form_type', 'redirection_url',
         'payment_time', 'auth_expiry_time', 'notified_at',
-        'raw_pay_response', 'raw_notify_payload',
+        'raw_pay_response', 'raw_notify_payload', 'customer_return_url',
     ];
 
     protected $casts = [
