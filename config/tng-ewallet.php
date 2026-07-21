@@ -14,5 +14,7 @@ return [
     'verify_response_signature' => env('TNG_VERIFY_RESPONSE_SIGNATURE', true),
     'timeout' => env('TNG_TIMEOUT', 30),
     'notify_path' => env('TNG_NOTIFY_PATH', '/tng-ewallet/notify'),
+    'return_path' => env('TNG_RETURN_PATH', '/tng-ewallet/return'),
+    'default_return_url' => env('TNG_DEFAULT_RETURN_URL', config('app.url')),
     'encryption_key' => env('TNG_ENCRYPTION_KEY'),
 ];
