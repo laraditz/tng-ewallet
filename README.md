@@ -78,6 +78,66 @@ Set these in your `.env`:
 
 `partner_id` is automatically included in every call that needs it (`prepare`, `pay`, `inquiryPayment`, `refund`, `inquiryRefund`) — you never need to pass it yourself, though an explicit `partnerId` in your own call data always takes precedence if you do.
 
+## API Reference
+
+Every wrapped call is a POST under `config('tng-ewallet.api_path')` (default `/acl/api`), reached through the `Tng` facade. Every response DTO shares `resultStatus`/`resultCode`/`resultMessage` plus `isSuccessful()`/`isAccepted()`/`isFailed()`/`isUnknown()`/`raw()`/`toArray()` — see [Handling U and A results](#handling-u-unknown-and-a-accepted-results) below.
+
+| Resource | Method | TNG endpoint | Description | Docs |
+| --- | --- | --- | --- | --- |
+| Authorization | [`prepare()`](#authorization-prepare) | `/v1/authorizations/prepare` | Start the Agreement Payment binding flow | [docs/authorization.md](docs/authorization.md#prepare) |
+| Authorization | [`applyToken()`](#agreement-payment-stored-credential-auto-debit) | `/v1/authorizations/applyToken` | Exchange an authCode (or refresh token) for an access token | [docs/authorization.md](docs/authorization.md#applytoken) |
+| Authorization | [`cancelToken()`](#agreement-payment-stored-credential-auto-debit) | `/v1/authorizations/cancelToken` | Revoke a binding | [docs/authorization.md](docs/authorization.md#canceltoken) |
+| Payment | [`pay()`](#cashier-payment-redirect-checkout) | `/v1/payments/pay` | Create a Cashier or Agreement payment | [docs/payment.md](docs/payment.md#pay) |
+| Payment | [`inquiry()`](#payment-inquiry) | `/v1/payments/inquiryPayment` | Check the real status of a payment | [docs/payment.md](docs/payment.md#inquiry) |
+| Refund | [`create()`](#refund-create) | `/v1/payments/refund` | Refund all or part of a payment | [docs/refund.md](docs/refund.md#create) |
+| Refund | [`inquiry()`](#refund-inquiry) | `/v1/payments/inquiryRefund` | Check the real status of a refund | [docs/refund.md](docs/refund.md#inquiry) |
+| User | [`inquiryByAccessToken()`](#user-info-and-messaging) | `/v1/customers/user/inquiryUserInfoByAccessToken` | Fetch a user's profile info | [docs/user-and-messaging.md](docs/user-and-messaging.md#user-inquirybyaccesstoken) |
+| Message | [`sendByAccessToken()`](#user-info-and-messaging) | `/v2/customers/message/sendByAccessToken` | Send a message to a user | [docs/user-and-messaging.md](docs/user-and-messaging.md#message-sendbyaccesstoken) |
+| Client (escape hatch) | `client()->post($uri, $data)` | any | Raw signed POST for endpoints not wrapped above | — |
+
+`pay()`, `applyToken()`, `cancelToken()`, `inquiryByAccessToken()`, and `sendByAccessToken()` each have a full working example further down, in the [Cashier Payment](#cashier-payment-redirect-checkout), [Agreement Payment](#agreement-payment-stored-credential-auto-debit), and [User info and messaging](#user-info-and-messaging) sections. The remaining calls are shown below; full parameter lists, response DTO fields, and side-effect notes for every method are in [docs/](docs/).
+
+#### `authorization()->prepare()`
+
+```php
+$prepare = Tng::authorization()->prepare([
+    'referenceClientId' => 'your-mini-program-client-id',
+]);
+
+// Redirect / hand $prepare->authURL to your Mini Program frontend.
+```
+
+#### `payment()->inquiry()`
+
+```php
+$status = Tng::payment()->inquiry(['paymentRequestId' => $paymentRequestId]);
+
+if ($status->isSuccessful()) {
+    // Safe to mark the order paid.
+} elseif ($status->isFailed()) {
+    // $status->paymentFailReason explains why.
+}
+```
+
+#### `refund()->create()`
+
+```php
+$refund = Tng::refund()->create([
+    'refundRequestId' => (string) Str::uuid(),
+    'paymentRequestId' => $paymentRequestId,
+    'refundAmount' => ['currency' => 'MYR', 'value' => '10000'],
+    'refundReason' => 'Customer requested cancellation',
+]);
+```
+
+#### `refund()->inquiry()`
+
+```php
+$status = Tng::refund()->inquiry(['refundRequestId' => $refundRequestId]);
+
+$status->refundStatus; // PROCESSING | SUCCESS | FAIL
+```
+
 ## Cashier Payment (redirect checkout)
 
 This is the documented golden path: create a payment, redirect the user to TNG's hosted cashier page, then receive the result asynchronously via the webhook.
