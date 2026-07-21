@@ -5,6 +5,11 @@ All notable changes to `laraditz/tng-ewallet` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-07-21
+
+### Added
+- README: an "API Reference" section listing every wrapped endpoint (resource, method, TNG path, description) with an example for each, plus links to new per-resource docs (`docs/authorization.md`, `docs/payment.md`, `docs/refund.md`, `docs/user-and-messaging.md`) covering full parameter lists, response DTO fields, and local persistence side effects.
+
 ## [1.0.1] - 2026-07-13
 
 ### Added
