@@ -3,6 +3,7 @@
 namespace Laraditz\TngEwallet\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Laraditz\TngEwallet\Facades\Tng;
 use Laraditz\TngEwallet\Models\Payment;
 
 class ReturnPaymentController
@@ -18,6 +19,18 @@ class ReturnPaymentController
             ]);
         }
 
-        return response('', 200);
+        $backUrl = $payment->customer_return_url ?? config('tng-ewallet.default_return_url');
+
+        $inquiry = Tng::payment()->inquiry(['paymentRequestId' => $payment->payment_request_id]);
+
+        return response()->view('tng-ewallet::return', [
+            'state' => 'status',
+            'backUrl' => $backUrl,
+            'paymentStatus' => $inquiry->paymentStatus,
+            'paymentAmount' => $inquiry->paymentAmount,
+            'paymentRequestId' => $inquiry->paymentRequestId,
+            'paymentTime' => $inquiry->paymentTime,
+            'paymentFailReason' => $inquiry->paymentFailReason,
+        ]);
     }
 }
