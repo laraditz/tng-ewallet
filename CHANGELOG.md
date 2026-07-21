@@ -5,6 +5,15 @@ All notable changes to `laraditz/tng-ewallet` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-22
+
+### Added
+- Cashier Payment return page — `pay()` now defaults `paymentReturnUrl` to this package's own `tng-ewallet.return` route (`config('tng-ewallet.return_path')`, default `/tng-ewallet/return`). The route looks up the matching `Payment`, calls `inquiry()` live, and renders one of three states: not-found, status (with amount/currency, reference, and fail reason if any), or a generic inquiry-failed state. See `docs/payment.md#return-page`.
+- `customerReturnUrl` — an optional `pay()` parameter for your own "send the customer back here" destination. Package-only: stripped from the outbound TNG request, persisted on the `Payment` row, and used as the return page's "Back" link (falling back to `config('tng-ewallet.default_return_url')`).
+- `TNG_RETURN_PATH` and `TNG_DEFAULT_RETURN_URL` config keys.
+- `tng_ewallet_payments.customer_return_url` column — existing installs need `php artisan vendor:publish --tag=tng-ewallet-migrations && php artisan migrate`.
+- The return page view, publishable under the `tng-ewallet-views` tag.
+
 ## [1.0.2] - 2026-07-21
 
 ### Added
