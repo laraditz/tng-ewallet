@@ -21,6 +21,7 @@ class TngEwalletServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'tng-ewallet');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
@@ -28,6 +29,10 @@ class TngEwalletServiceProvider extends ServiceProvider
             ], 'tng-ewallet-config');
 
             $this->publishes($this->buildMigrationPublishMap(), 'tng-ewallet-migrations');
+
+            $this->publishes([
+                __DIR__.'/../resources/views' => resource_path('views/vendor/tng-ewallet'),
+            ], 'tng-ewallet-views');
 
             $this->commands([
                 GenerateEncryptionKeyCommand::class,

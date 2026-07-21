@@ -27,3 +27,13 @@ test('raw_pay_response and raw_notify_payload are cast to arrays', function () {
     expect($payment->fresh()->raw_pay_response)->toBe(['paymentId' => '123'])
         ->and($payment->fresh()->raw_notify_payload)->toBe(['paymentResult' => ['resultStatus' => 'S']]);
 });
+
+test('customer_return_url is mass-assignable', function () {
+    $payment = Payment::create([
+        'payment_request_id' => 'pr-3',
+        'status' => PaymentStatus::Created->value,
+        'customer_return_url' => 'https://host-app.test/checkout/thanks',
+    ]);
+
+    expect($payment->fresh()->customer_return_url)->toBe('https://host-app.test/checkout/thanks');
+});
