@@ -22,6 +22,9 @@ class PaymentService
 
     public function pay(array $data): PayResponse
     {
+        $customerReturnUrl = $data['customerReturnUrl'] ?? null;
+        unset($data['customerReturnUrl']);
+
         $data = $this->withPartnerId($data);
         $data += ['paymentNotifyUrl' => route('tng-ewallet.notify')];
         $data += ['paymentReturnUrl' => route('tng-ewallet.return', ['payment_request_id' => $data['paymentRequestId']])];
@@ -42,6 +45,7 @@ class PaymentService
             'payment_time' => $response->paymentTime,
             'auth_expiry_time' => $response->authExpiryTime,
             'raw_pay_response' => $response->raw(),
+            'customer_return_url' => $customerReturnUrl,
         ]);
 
         return $response;
