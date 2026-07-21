@@ -5,5 +5,10 @@
     <title>Payment status</title>
 </head>
 <body>
+    @if ($state === 'not_found')
+        <p>We couldn't find this payment.</p>
+    @endif
+
+    <a href="{{ $backUrl }}">Back</a>
 </body>
 </html>
